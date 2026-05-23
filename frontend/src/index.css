@@ -169,6 +169,32 @@ body {
     font-size: 15px;
   }
 
+  .print-bill__qr {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed #94a3b8;
+    text-align: center;
+  }
+
+  .print-bill__qr p {
+    margin: 0 0 8px;
+    font-weight: 800;
+  }
+
+  .print-bill__qr img {
+    display: block;
+    width: 42mm;
+    height: 42mm;
+    object-fit: contain;
+    margin: 0 auto;
+  }
+
+  .print-bill__qr span {
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+  }
+
   .print-bill__footer {
     margin-top: 14px;
     padding-top: 10px;

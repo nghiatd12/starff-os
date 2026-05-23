@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
 import { formatCurrency } from '@/utils/format'
 import { Printer, Banknote, Smartphone, QrCode, Wallet, Check } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
@@ -19,6 +20,9 @@ export default function BillDetail({ table, orders, onPaid }) {
   const [discount, setDiscount] = useState('')
   const [payMethod, setPayMethod] = useState('cash')
   const [paying, setPaying] = useState(false)
+  const [paymentSettings, setPaymentSettings] = useState(getPaymentSettings)
+
+  useEffect(() => subscribePaymentSettings(setPaymentSettings), [])
 
   // Lấy TẤT CẢ orders của bàn này (có thể gọi nhiều lần)
   const tableOrders = orders.filter((o) => o.table_id === table.id)
@@ -64,6 +68,7 @@ export default function BillDetail({ table, orders, onPaid }) {
           api.patch(`/orders/${o.id}/pay`, { paymentMethod: payMethod, discount: parseFloat(discount) || 0 })
         )
       )
+      window.print()
       onPaid?.(table.id)
     } catch (err) {
       alert(err.message || 'Thanh toán thất bại')
@@ -181,13 +186,46 @@ export default function BillDetail({ table, orders, onPaid }) {
             })}
           </div>
 
+          {payMethod === 'qr' && (
+            <div className="mb-6 rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white bg-white p-2 shadow-sm">
+                  {paymentSettings.qrImage ? (
+                    <img
+                      src={paymentSettings.qrImage}
+                      alt="QR thanh toán"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <QrCode size={44} className="text-emerald-500" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 pt-1">
+                  <p className="text-sm font-bold text-slate-800">
+                    {paymentSettings.qrName || 'QR thanh toán'}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {paymentSettings.qrImage
+                      ? 'Khách có thể quét QR này, sau đó bấm thanh toán để in bill.'
+                      : 'Chưa có ảnh QR. Vào Cài đặt > QR thanh toán để upload ảnh QR của quán.'}
+                  </p>
+                  {paymentSettings.qrNote && (
+                    <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-medium text-emerald-700">
+                      {paymentSettings.qrNote}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handlePay}
             disabled={paying || mergedItems.length === 0}
             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-4 rounded-2xl font-bold text-base transition-all shadow-soft hover:shadow-card flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Check size={20} strokeWidth={2.5} />
-            {paying ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(total)}`}
+            {paying ? 'Đang xử lý...' : `Thanh toán & in bill ${formatCurrency(total)}`}
           </button>
         </Card>
       </div>
@@ -201,6 +239,8 @@ export default function BillDetail({ table, orders, onPaid }) {
         discountAmt={discountAmt}
         total={total}
         paymentLabel={paymentLabel}
+        paymentMethod={payMethod}
+        paymentSettings={paymentSettings}
       />
     </div>
   )
@@ -216,7 +256,11 @@ function PrintableBill({
   discountAmt,
   total,
   paymentLabel,
+  paymentMethod,
+  paymentSettings,
 }) {
+  const shouldPrintPaymentQr = paymentMethod === 'qr' && paymentSettings?.qrImage
+
   return (
     <div className="print-bill">
       <div className="print-bill__header">
@@ -278,6 +322,14 @@ function PrintableBill({
           <strong>{paymentLabel}</strong>
         </div>
       </div>
+
+      {shouldPrintPaymentQr && (
+        <div className="print-bill__qr">
+          <p>{paymentSettings.qrName || 'QR thanh toán'}</p>
+          <img src={paymentSettings.qrImage} alt="QR thanh toán" />
+          {paymentSettings.qrNote && <span>{paymentSettings.qrNote}</span>}
+        </div>
+      )}
 
       <div className="print-bill__footer">
         <p>Cảm ơn quý khách. Hẹn gặp lại!</p>
