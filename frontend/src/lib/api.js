@@ -1,4 +1,4 @@
-import { getToken, removeToken } from './auth'
+import { getToken, removeToken, removeUser } from './auth'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -20,7 +20,7 @@ async function request(method, path, body) {
   // On 401, clear auth and redirect to login
   if (res.status === 401) {
     removeToken()
-    localStorage.removeItem('staffos_user')
+    removeUser()
     window.location.reload()
     throw new Error('Phiên đăng nhập hết hạn')
   }
@@ -32,6 +32,13 @@ async function request(method, path, body) {
 
   if (!data) {
     throw new Error(`API không trả JSON (${res.status})`)
+  }
+
+  if (res.status === 403 && data.code === 'ACCOUNT_INACTIVE') {
+    removeToken()
+    removeUser()
+    window.location.reload()
+    throw new Error(data.message || data.error || 'Tài khoản đã bị tạm khóa')
   }
 
   if (!res.ok) {
