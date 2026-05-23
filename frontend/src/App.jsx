@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import TopBar from '@/components/layout/TopBar'
 import { api } from '@/lib/api'
-import { getToken, removeToken, getUser, setUser as saveUser, removeUser } from '@/lib/auth'
+import { clearAuth, getRefreshToken, getToken, getUser, setUser as saveUser } from '@/lib/auth'
 import { prefetchAll, clearStore, bindSocketToStore } from '@/lib/store'
 import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { isAudioUnlocked, playNewOrder, playOrderReady, playStaffCall, unlockAudio } from '@/lib/sound'
@@ -108,7 +108,8 @@ export default function App() {
   // Check token on mount + prefetch data
   useEffect(() => {
     const token = getToken()
-    if (!token) {
+    const refreshToken = getRefreshToken()
+    if (!token && !refreshToken) {
       setCurrentView('login')
       return
     }
@@ -128,8 +129,7 @@ export default function App() {
         bindGlobalNotifications(socket)
       })
       .catch(() => {
-        removeToken()
-        removeUser()
+        clearAuth()
         setCurrentView('login')
       })
   }, [])
@@ -152,8 +152,7 @@ export default function App() {
   }
 
   const handleLogout = () => {
-    removeToken()
-    removeUser()
+    clearAuth()
     clearStore()
     disconnectSocket()
     setUser(null)

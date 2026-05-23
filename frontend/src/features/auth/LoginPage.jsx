@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Card from '@/components/ui/Card'
 import { Store, ChevronRight } from '@/components/ui/Icon'
 import { api } from '@/lib/api'
-import { setToken, setUser } from '@/lib/auth'
+import { setRefreshToken, setToken, setUser } from '@/lib/auth'
 
 const ROLES = [
   { id: 'owner',    label: 'Chủ quán' },
@@ -44,6 +44,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
         password: form.password,
       })
       setToken(data.token)
+      if (data.refreshToken) setRefreshToken(data.refreshToken)
       setUser(data.user)
       onLogin(data.user)
     } catch (err) {

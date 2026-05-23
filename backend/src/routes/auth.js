@@ -5,6 +5,8 @@ import { query, queryOne } from '../db/pool.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = Router()
+const ACCESS_TOKEN_TTL = '15m'
+const REFRESH_TOKEN_TTL = '1d'
 
 function createSlug(name) {
   return name
@@ -24,6 +26,45 @@ async function uniqueSlug(name) {
     slug = `${base}-${suffix}`
   }
   return slug
+}
+
+function createAccessToken(user) {
+  return jwt.sign(
+    {
+      type: 'access',
+      id: user.id,
+      tenantId: user.tenant_id,
+      role: user.role,
+      name: user.name,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: ACCESS_TOKEN_TTL }
+  )
+}
+
+function createRefreshToken(user) {
+  return jwt.sign(
+    {
+      type: 'refresh',
+      id: user.id,
+      tenantId: user.tenant_id,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: REFRESH_TOKEN_TTL }
+  )
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    role: user.role,
+    store: user.store_name,
+    storeSlug: user.store_slug,
+    store_name: user.store_name,
+    store_slug: user.store_slug,
+  }
 }
 
 /**
@@ -122,32 +163,54 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Tài khoản đã bị tạm khóa. Vui lòng liên hệ hỗ trợ.' })
     }
 
-    // Tạo JWT token (7 ngày)
-    const token = jwt.sign(
-      {
-        id: user.id,
-        tenantId: user.tenant_id,
-        role: user.role,
-        name: user.name,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    )
-
     res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        store: user.store_name,
-        storeSlug: user.store_slug,
-      },
+      token: createAccessToken(user),
+      refreshToken: createRefreshToken(user),
+      expiresIn: 15 * 60,
+      refreshExpiresIn: 24 * 60 * 60,
+      user: publicUser(user),
     })
   } catch (err) {
     console.error('[Auth] Login error:', err)
     res.status(500).json({ error: 'Lỗi server' })
+  }
+})
+
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body
+    if (!refreshToken) return res.status(401).json({ error: 'Thiếu refresh token' })
+
+    const payload = jwt.verify(refreshToken, process.env.JWT_SECRET)
+    if (payload.type !== 'refresh') {
+      return res.status(401).json({ error: 'Refresh token không hợp lệ' })
+    }
+
+    const user = await queryOne(
+      `SELECT u.*, t.name as store_name, t.slug as store_slug, t.status as tenant_status, t.deleted_at
+       FROM users u JOIN tenants t ON u.tenant_id = t.id
+       WHERE u.id = $1 AND u.tenant_id = $2 AND u.is_active = true`,
+      [payload.id, payload.tenantId]
+    )
+
+    if (!user || user.deleted_at || user.tenant_status !== 'active') {
+      return res.status(403).json({
+        code: 'ACCOUNT_INACTIVE',
+        error: user?.tenant_status === 'pending'
+          ? 'Tài khoản đang chờ kích hoạt.'
+          : 'Tài khoản đã bị tạm khóa. Vui lòng liên hệ hỗ trợ.',
+      })
+    }
+
+    res.json({
+      token: createAccessToken(user),
+      refreshToken: createRefreshToken(user),
+      expiresIn: 15 * 60,
+      refreshExpiresIn: 24 * 60 * 60,
+      user: publicUser(user),
+    })
+  } catch (err) {
+    return res.status(401).json({ error: 'Refresh token không hợp lệ hoặc đã hết hạn' })
   }
 })
 
@@ -164,18 +227,7 @@ router.get('/me', authenticate, async (req, res) => {
       [req.user.id]
     )
     if (!user) return res.status(404).json({ error: 'User not found' })
-    res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        store: user.store_name,
-        storeSlug: user.store_slug,
-        store_name: user.store_name,
-        store_slug: user.store_slug,
-      },
-    })
+    res.json({ user: publicUser(user) })
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server' })
   }

@@ -1,8 +1,42 @@
-import { getToken, removeToken, removeUser } from './auth'
+import {
+  clearAuth,
+  getRefreshToken,
+  getToken,
+  setRefreshToken,
+  setToken,
+  setUser,
+} from './auth'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
-async function request(method, path, body) {
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+
+  const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
+  const contentType = res.headers.get('content-type') || ''
+  const data = contentType.includes('application/json') ? await res.json() : null
+
+  if (!res.ok || !data?.token) {
+    if (data?.code === 'ACCOUNT_INACTIVE') {
+      clearAuth()
+      window.location.reload()
+      throw new Error(data.message || data.error || 'Tài khoản đã bị tạm khóa')
+    }
+    return false
+  }
+
+  setToken(data.token)
+  if (data.refreshToken) setRefreshToken(data.refreshToken)
+  if (data.user) setUser(data.user)
+  return true
+}
+
+async function request(method, path, body, retry = true) {
   const token = getToken()
   const headers = { 'Content-Type': 'application/json' }
 
@@ -17,10 +51,11 @@ async function request(method, path, body) {
 
   const res = await fetch(`${BASE_URL}${path}`, options)
 
-  // On 401, clear auth and redirect to login
   if (res.status === 401) {
-    removeToken()
-    removeUser()
+    if (retry && path !== '/auth/refresh' && await refreshAccessToken()) {
+      return request(method, path, body, false)
+    }
+    clearAuth()
     window.location.reload()
     throw new Error('Phiên đăng nhập hết hạn')
   }
@@ -35,8 +70,7 @@ async function request(method, path, body) {
   }
 
   if (res.status === 403 && data.code === 'ACCOUNT_INACTIVE') {
-    removeToken()
-    removeUser()
+    clearAuth()
     window.location.reload()
     throw new Error(data.message || data.error || 'Tài khoản đã bị tạm khóa')
   }
