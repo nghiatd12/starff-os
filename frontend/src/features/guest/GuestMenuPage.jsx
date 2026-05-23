@@ -301,16 +301,17 @@ function getCategoryEmoji(category) {
   return map[category] || '🍽️'
 }
 
-function GuestActionBar({ onCallStaff, actionStatus }) {
+function GuestActionBar({ onCallStaff, onOpenHistory, orderCount, actionStatus }) {
   return (
     <div className="pb-1 bg-white">
       <div className="flex gap-3 overflow-x-auto pb-1">
-      <button
-        onClick={onCallStaff}
-        className="shrink-0 rounded-2xl px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 active:scale-[0.98] transition-transform"
-      >
-        <span className="text-sm font-bold">🙋 Gọi nhân viên</span>
-      </button>
+        <button
+          onClick={onCallStaff}
+          className="shrink-0 rounded-2xl px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 active:scale-[0.98] transition-transform"
+        >
+          <span className="text-sm font-bold">🙋 Gọi nhân viên</span>
+        </button>
+        <HistoryButton orderCount={orderCount} onClick={onOpenHistory} />
       </div>
       {actionStatus && (
         <div className="mt-3 rounded-2xl bg-slate-900 text-white px-4 py-2 text-xs font-medium text-center shadow-lg">
@@ -552,11 +553,10 @@ export default function GuestMenuPage({ slug, tableId }) {
 
         <GuestActionBar
           onCallStaff={handleCallStaff}
+          onOpenHistory={() => setShowHistory(true)}
+          orderCount={orderHistory.length}
           actionStatus={actionStatus}
         />
-        <div className="mt-3">
-          <HistoryButton orderCount={orderHistory.length} onClick={() => setShowHistory(true)} />
-        </div>
       </div>
 
       {/* Category tabs */}
