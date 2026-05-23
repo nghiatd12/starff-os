@@ -30,10 +30,7 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, us
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#10b981' }}>
               <Store size={18} className="text-white" />
             </div>
-            <div>
-              <span className="text-slate-800 font-bold text-base tracking-tight">Quán Cậu Út</span>
-              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">Quản lý quán</p>
-            </div>
+            <span className="text-slate-800 font-bold text-base tracking-tight">Quán Cậu Út</span>
           </div>
         )}
         {collapsed && (
