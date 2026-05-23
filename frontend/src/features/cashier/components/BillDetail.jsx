@@ -115,7 +115,7 @@ export default function BillDetail({ table, orders, onPaid }) {
 
       <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
         {/* Items table */}
-        <Card className="mb-5">
+        <Card className="mb-5 overflow-hidden">
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-700 text-sm">Chi tiết món ăn</h3>
           </div>
@@ -124,28 +124,30 @@ export default function BillDetail({ table, orders, onPaid }) {
               <p className="text-slate-400 text-sm">Không có dữ liệu</p>
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="text-[11px] text-slate-400 border-b border-slate-100 uppercase tracking-wider">
-                  <th className="text-left p-4 font-semibold">Món</th>
-                  <th className="text-center p-4 font-semibold">SL</th>
-                  <th className="text-right p-4 font-semibold">Đơn giá</th>
-                  <th className="text-right p-4 font-semibold">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mergedItems.map((item, i) => (
-                  <tr key={i} className="border-b border-slate-50 table-row-hover">
-                    <td className="p-4 text-sm text-slate-700 font-medium">{item.name}</td>
-                    <td className="p-4 text-sm text-center text-slate-500">{item.qty}</td>
-                    <td className="p-4 text-sm text-right text-slate-500">{formatCurrency(item.price)}</td>
-                    <td className="p-4 text-sm text-right font-bold text-slate-800">
-                      {formatCurrency(item.price * item.qty)}
-                    </td>
+            <div className="max-h-[420px] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-white">
+                  <tr className="text-[11px] text-slate-400 border-b border-slate-100 uppercase tracking-wider">
+                    <th className="text-left p-4 font-semibold">Món</th>
+                    <th className="text-center p-4 font-semibold">SL</th>
+                    <th className="text-right p-4 font-semibold">Đơn giá</th>
+                    <th className="text-right p-4 font-semibold">Thành tiền</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {mergedItems.map((item, i) => (
+                    <tr key={i} className="border-b border-slate-50 table-row-hover">
+                      <td className="p-4 text-sm text-slate-700 font-medium">{item.name}</td>
+                      <td className="p-4 text-sm text-center text-slate-500">{item.qty}</td>
+                      <td className="p-4 text-sm text-right text-slate-500">{formatCurrency(item.price)}</td>
+                      <td className="p-4 text-sm text-right font-bold text-slate-800">
+                        {formatCurrency(item.price * item.qty)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
 
