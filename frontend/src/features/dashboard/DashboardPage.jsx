@@ -37,6 +37,88 @@ function formatPercentTrend(value) {
   return `${value > 0 ? '+' : ''}${value}%`
 }
 
+function sameLocalDay(value, target = new Date()) {
+  const date = new Date(value)
+  return date.getFullYear() === target.getFullYear()
+    && date.getMonth() === target.getMonth()
+    && date.getDate() === target.getDate()
+}
+
+function lastSevenDays() {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    date.setDate(date.getDate() - (6 - index))
+    return date
+  })
+}
+
+function buildFallbackDashboard({ tables = [], staff = [], orders = [] }) {
+  const todayOrders = orders.filter((order) => sameLocalDay(order.created_at))
+  const revenueToday = todayOrders.reduce((sum, order) => sum + Number(order.total || 0), 0)
+  const activeTables = tables.filter((table) => table.status !== 'empty').length
+  const totalTables = tables.length
+  const activeStaff = staff.filter((employee) => employee.is_active).length
+  const inactiveStaff = staff.filter((employee) => !employee.is_active).length
+
+  const revenue = lastSevenDays().map((date) => ({
+    date: date.toISOString(),
+    value: orders
+      .filter((order) => sameLocalDay(order.created_at, date))
+      .reduce((sum, order) => sum + Number(order.total || 0), 0),
+  }))
+
+  const dishMap = new Map()
+  for (const order of todayOrders) {
+    for (const item of order.items || []) {
+      const quantity = Number(item.quantity || item.qty || 1)
+      const current = dishMap.get(item.name) || { name: item.name, count: 0, revenue: 0 }
+      current.count += quantity
+      current.revenue += Number(item.price || 0) * quantity
+      dishMap.set(item.name, current)
+    }
+  }
+
+  return {
+    stats: {
+      revenueToday,
+      revenueChangePercent: 0,
+      activeTables,
+      totalTables,
+      tableOccupancyPercent: totalTables ? Math.round((activeTables / totalTables) * 100) : 0,
+      ordersToday: todayOrders.length,
+      ordersChange: 0,
+      activeStaff,
+      inactiveStaff,
+    },
+    revenue,
+    topDishes: [...dishMap.values()]
+      .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
+      .slice(0, 5),
+    recentOrders: [...orders]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5)
+      .map((order) => ({
+        ...order,
+        quantity_count: (order.items || []).reduce((sum, item) => sum + Number(item.quantity || item.qty || 1), 0),
+      })),
+  }
+}
+
+async function loadFallbackDashboard() {
+  const [tablesRes, staffRes, ordersRes] = await Promise.all([
+    api.get('/tables').catch(() => ({ tables: [] })),
+    api.get('/staff').catch(() => ({ employees: [] })),
+    api.get('/orders/active').catch(() => ({ orders: [] })),
+  ])
+
+  return buildFallbackDashboard({
+    tables: tablesRes.tables || [],
+    staff: Array.isArray(staffRes) ? staffRes : staffRes.employees || staffRes.rows || [],
+    orders: ordersRes.orders || [],
+  })
+}
+
 export default function DashboardPage() {
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD)
   const [loading, setLoading] = useState(true)
@@ -46,7 +128,12 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const data = await api.get('/dashboard/summary')
+      let data
+      try {
+        data = await api.get('/dashboard/summary')
+      } catch (dashboardErr) {
+        data = await loadFallbackDashboard()
+      }
       setDashboard({
         stats: { ...EMPTY_DASHBOARD.stats, ...(data.stats || {}) },
         revenue: data.revenue || [],

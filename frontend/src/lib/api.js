@@ -25,7 +25,14 @@ async function request(method, path, body) {
     throw new Error('Phiên đăng nhập hết hạn')
   }
 
-  const data = await res.json()
+  const contentType = res.headers.get('content-type') || ''
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : null
+
+  if (!data) {
+    throw new Error(`API không trả JSON (${res.status})`)
+  }
 
   if (!res.ok) {
     throw new Error(data.message || data.error || `Lỗi ${res.status}`)
