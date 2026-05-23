@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { getPaymentQrImageUrl, getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
 import { formatCurrency } from '@/utils/format'
-import { Printer, Banknote, Smartphone, QrCode, Wallet, Check } from '@/components/ui/Icon'
+import { Printer, Banknote, QrCode, Check } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 
 const PAYMENT_METHODS = [
   { id: 'cash',     label: 'Tiền mặt',     Icon: Banknote },
-  { id: 'transfer', label: 'Chuyển khoản', Icon: Wallet },
-  { id: 'qr',       label: 'QR VietQR',    Icon: QrCode },
-  { id: 'momo',     label: 'MoMo',         Icon: Smartphone },
+  { id: 'qr',       label: 'QR',           Icon: QrCode },
 ]
 
 /**
@@ -163,7 +161,7 @@ export default function BillDetail({ table, orders, onPaid }) {
           </div>
 
           <p className="text-sm font-semibold text-slate-700 mb-3">Phương thức thanh toán</p>
-          <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {PAYMENT_METHODS.map((m) => {
               const IconComp = m.Icon
               return (
@@ -228,7 +226,7 @@ export default function BillDetail({ table, orders, onPaid }) {
             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-4 rounded-2xl font-bold text-base transition-all shadow-soft hover:shadow-card flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Check size={20} strokeWidth={2.5} />
-            {paying ? 'Đang xử lý...' : `Thanh toán & in bill ${formatCurrency(total)}`}
+            {paying ? 'Đang xử lý...' : 'Thanh toán'}
           </button>
         </Card>
       </div>
