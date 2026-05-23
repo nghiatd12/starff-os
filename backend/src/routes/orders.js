@@ -114,6 +114,34 @@ router.get('/active', async (req, res) => {
 })
 
 /**
+ * GET /api/orders/billing
+ * Lấy tất cả order chưa thanh toán cho màn thu ngân.
+ * Khác /active: bao gồm cả order đã bếp hoàn thành (ready) để vẫn còn bill.
+ */
+router.get('/billing', async (req, res) => {
+  try {
+    const orders = await queryAll(
+      `SELECT o.*, t.name as table_name
+       FROM orders o JOIN tables t ON o.table_id = t.id
+       WHERE o.tenant_id = $1 AND o.status IN ('open', 'preparing', 'ready')
+       ORDER BY o.created_at ASC`,
+      [req.user.tenantId]
+    )
+
+    for (const order of orders) {
+      order.items = await queryAll(
+        `SELECT * FROM order_items WHERE order_id = $1 ORDER BY id`,
+        [order.id]
+      )
+    }
+
+    res.json({ orders })
+  } catch (err) {
+    res.status(500).json({ error: 'Lỗi server' })
+  }
+})
+
+/**
  * PATCH /api/orders/:id/items/:itemId
  * Cập nhật trạng thái món (pending → preparing → done)
  * Dùng cho bếp tick từng món

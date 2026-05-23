@@ -3,9 +3,24 @@ import { Clock, Users } from '@/components/ui/Icon'
 import Badge from '@/components/ui/Badge'
 
 /**
- * TableList — danh sách bàn có hóa đơn (panel trái)
+ * TableList - danh sách bàn có hóa đơn, lấy từ order chưa thanh toán.
  */
 export default function TableList({ tables, orders, selectedId, onSelect }) {
+  const formatTableTime = (tableOrders) => {
+    const firstOrder = tableOrders[0]
+    if (!firstOrder?.created_at) return ''
+    return new Date(firstOrder.created_at).toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const getBillingStatus = (tableOrders) => {
+    const hasReadyOrder = tableOrders.some((order) => order.status === 'ready')
+    if (hasReadyOrder) return { label: 'Chờ thanh toán', variant: 'warning' }
+    return { label: 'Có khách', variant: 'success' }
+  }
+
   return (
     <div className="w-72 bg-white border-r border-slate-100 flex flex-col">
       <div className="p-5 border-b border-slate-100 flex-shrink-0">
@@ -20,10 +35,12 @@ export default function TableList({ tables, orders, selectedId, onSelect }) {
           </div>
         ) : (
           tables.map((table) => {
-            // Gộp tất cả orders của bàn để tính tổng
-            const tableOrders = orders.filter((o) => o.table_id === table.id)
-            const allItems = tableOrders.flatMap((o) => o.items || [])
-            const total = allItems.reduce((s, i) => s + i.price * (i.qty || i.quantity || 1), 0)
+            const tableOrders = orders.filter((order) => order.table_id === table.id)
+            const allItems = tableOrders.flatMap((order) => order.items || [])
+            const total = allItems.reduce((sum, item) => sum + item.price * (item.qty || item.quantity || 1), 0)
+            const guestCount = tableOrders.reduce((sum, order) => sum + (Number(order.guest_count) || 0), 0)
+            const displayTime = formatTableTime(tableOrders)
+            const billingStatus = getBillingStatus(tableOrders)
             const isSelected = selectedId === table.id
 
             return (
@@ -35,21 +52,23 @@ export default function TableList({ tables, orders, selectedId, onSelect }) {
                     ? 'bg-brand-50 border-l-[3px] border-l-brand-500'
                     : 'hover:bg-slate-50 border-l-[3px] border-l-transparent'}`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="font-semibold text-slate-800 text-sm">{table.name}</span>
-                  <Badge variant={table.status === 'occupied' ? 'success' : 'warning'} dot>
-                    {table.status === 'occupied' ? 'Có khách' : 'Chờ món'}
+                  <Badge variant={billingStatus.variant} dot>
+                    {billingStatus.label}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
                   <span className="flex items-center gap-1">
                     <Users size={11} />
-                    {table.guests} khách
+                    {guestCount || 1} khách
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={11} />
-                    {table.time}
-                  </span>
+                  {displayTime && (
+                    <span className="flex items-center gap-1">
+                      <Clock size={11} />
+                      {displayTime}
+                    </span>
+                  )}
                 </div>
                 {total > 0 && (
                   <div className="text-sm font-bold text-brand-600 mt-2">

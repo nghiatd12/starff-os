@@ -13,14 +13,14 @@ export default function CashierPage() {
   useEffect(() => {
     Promise.all([
       api.get('/tables').catch(() => null),
-      api.get('/orders/active').catch(() => null),
+      api.get('/orders/billing').catch(() => null),
     ]).then(([tablesRes, ordersRes]) => {
       const allTables = tablesRes?.tables || []
-      const openTables = allTables.filter(
-        (t) => t.status === 'occupied' || t.status === 'waiting'
-      )
+      const billingOrders = ordersRes?.orders || []
+      const tableIdsWithBill = new Set(billingOrders.map((order) => order.table_id))
+      const openTables = allTables.filter((table) => tableIdsWithBill.has(table.id))
       setTables(openTables)
-      setOrders(ordersRes?.orders || [])
+      setOrders(billingOrders)
       if (openTables.length > 0) {
         setSelectedTable(openTables[0])
       }
