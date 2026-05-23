@@ -1,6 +1,14 @@
 import { useState } from 'react'
-import { Users, Plus } from '@/components/ui/Icon'
+import { Plus } from '@/components/ui/Icon'
+import { api } from '@/lib/api'
 import EmployeeTable from './components/EmployeeTable'
+
+const ROLES = [
+  { value: 'manager', label: 'Quản lý' },
+  { value: 'waiter',  label: 'Phục vụ' },
+  { value: 'cashier', label: 'Thu ngân' },
+  { value: 'kitchen', label: 'Bếp' },
+]
 
 export default function StaffPage() {
   const [showAdd, setShowAdd] = useState(false)
@@ -29,7 +37,7 @@ export default function StaffPage() {
         </button>
       </div>
 
-      <EmployeeTable key={refreshKey} onAdd={() => setShowAdd(true)} />
+      <EmployeeTable key={refreshKey} />
 
       {showAdd && (
         <AddEmployeeModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />
@@ -39,14 +47,6 @@ export default function StaffPage() {
 }
 
 // ─── Modal thêm nhân viên ────────────────────────────────────────────────────
-import { api } from '@/lib/api'
-
-const ROLES = [
-  { value: 'manager', label: 'Quản lý' },
-  { value: 'waiter',  label: 'Phục vụ' },
-  { value: 'cashier', label: 'Thu ngân' },
-  { value: 'kitchen', label: 'Bếp' },
-]
 
 function AddEmployeeModal({ onClose, onAdded }) {
   const [form, setForm] = useState({ name: '', phone: '', role: 'waiter', pin: '', password: '' })
