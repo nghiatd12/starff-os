@@ -57,6 +57,23 @@ export default function BillDetail({ table, orders, onPaid }) {
     window.print()
   }
 
+  const printBillAndWait = () =>
+    new Promise((resolve) => {
+      let done = false
+      const finish = () => {
+        if (done) return
+        done = true
+        window.removeEventListener('afterprint', finish)
+        resolve()
+      }
+
+      window.addEventListener('afterprint', finish)
+      requestAnimationFrame(() => {
+        window.print()
+        setTimeout(finish, 1000)
+      })
+    })
+
   const handlePay = async () => {
     if (tableOrders.length === 0) return
     setPaying(true)
@@ -67,7 +84,7 @@ export default function BillDetail({ table, orders, onPaid }) {
           api.patch(`/orders/${o.id}/pay`, { paymentMethod: payMethod, discount: parseFloat(discount) || 0 })
         )
       )
-      window.print()
+      await printBillAndWait()
       onPaid?.(table.id)
     } catch (err) {
       alert(err.message || 'Thanh toán thất bại')
