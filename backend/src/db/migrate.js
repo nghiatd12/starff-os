@@ -237,6 +237,12 @@ async function migrate() {
     ON CONFLICT (tenant_id, menu_set_id, name) DO NOTHING;
   `)
 
+  await pool.query(`
+    UPDATE tenants
+    SET name = 'Quán Cậu Út'
+    WHERE name = 'Bia Garden Q7';
+  `)
+
   console.log('✅ All tables created successfully!')
   await pool.end()
 }

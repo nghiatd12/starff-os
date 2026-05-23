@@ -12,12 +12,12 @@ async function seed() {
   // 1. Tạo quán mẫu
   const { rows: [tenant] } = await pool.query(`
     INSERT INTO tenants (name, slug, address, phone, type, table_count)
-    VALUES ('Bia Garden Q7', 'bia-garden-q7', '123 Nguyễn Huệ, Q.7, TP.HCM', '0901234567', 'beer', 15)
+    VALUES ('Quán Cậu Út', 'bia-garden-q7', '123 Nguyễn Huệ, Q.7, TP.HCM', '0901234567', 'beer', 15)
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
   `)
   const tenantId = tenant.id
-  console.log(`✅ Tenant: Bia Garden Q7 (id: ${tenantId})`)
+  console.log(`✅ Tenant: Quán Cậu Út (id: ${tenantId})`)
 
   // 2. Tạo tài khoản chủ quán
   const ownerHash = await bcrypt.hash('123456', 10)
