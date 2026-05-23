@@ -31,10 +31,8 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, us
               <Store size={18} className="text-white" />
             </div>
             <div>
-              <span className="text-slate-800 font-bold text-base tracking-tight">StaffOS</span>
-              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">
-                {user?.store || 'Quản lý quán nhậu'}
-              </p>
+              <span className="text-slate-800 font-bold text-base tracking-tight">Quán Cậu Út</span>
+              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">Quản lý quán</p>
             </div>
           </div>
         )}
