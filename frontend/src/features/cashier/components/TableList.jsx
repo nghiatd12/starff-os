@@ -1,20 +1,26 @@
 import { formatCurrency } from '@/utils/format'
-import { Clock, Users } from '@/components/ui/Icon'
+import { Clock, MapPin, Users } from '@/components/ui/Icon'
 import Badge from '@/components/ui/Badge'
+
+const ZONE_LABELS = {
+  indoor: 'Trong nhà',
+  outdoor: 'Ngoài trời',
+  vip: 'Phòng VIP',
+}
+
+const formatElapsed = (createdAt) => {
+  if (!createdAt) return ''
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000))
+  if (minutes < 60) return `${minutes} phút`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins ? `${hours}h ${mins}p` : `${hours}h`
+}
 
 /**
  * TableList - danh sách bàn có hóa đơn, lấy từ order chưa thanh toán.
  */
 export default function TableList({ tables, orders, selectedId, onSelect }) {
-  const formatTableTime = (tableOrders) => {
-    const firstOrder = tableOrders[0]
-    if (!firstOrder?.created_at) return ''
-    return new Date(firstOrder.created_at).toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
   const getBillingStatus = (tableOrders) => {
     const hasReadyOrder = tableOrders.some((order) => order.status === 'ready')
     if (hasReadyOrder) return { label: 'Chờ thanh toán', variant: 'warning' }
@@ -39,8 +45,9 @@ export default function TableList({ tables, orders, selectedId, onSelect }) {
             const allItems = tableOrders.flatMap((order) => order.items || [])
             const total = allItems.reduce((sum, item) => sum + item.price * (item.qty || item.quantity || 1), 0)
             const guestCount = tableOrders.reduce((sum, order) => sum + (Number(order.guest_count) || 0), 0)
-            const displayTime = formatTableTime(tableOrders)
+            const elapsed = formatElapsed(tableOrders[0]?.created_at)
             const billingStatus = getBillingStatus(tableOrders)
+            const zoneLabel = ZONE_LABELS[table.zone] || table.zone || 'Chưa có khu vực'
             const isSelected = selectedId === table.id
 
             return (
@@ -52,21 +59,28 @@ export default function TableList({ tables, orders, selectedId, onSelect }) {
                     ? 'bg-brand-50 border-l-[3px] border-l-brand-500'
                     : 'hover:bg-slate-50 border-l-[3px] border-l-transparent'}`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-slate-800 text-sm">{table.name}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="font-semibold text-slate-800 text-sm">{table.name}</span>
+                    <div className="mt-1 flex w-fit items-center gap-1 rounded-xl bg-white/70 px-2 py-1 text-[10px] font-semibold text-slate-500">
+                      <MapPin size={10} />
+                      {zoneLabel}
+                    </div>
+                  </div>
                   <Badge variant={billingStatus.variant} dot>
                     {billingStatus.label}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
+
+                <div className="flex items-center gap-3 text-xs text-slate-400 mt-2">
                   <span className="flex items-center gap-1">
                     <Users size={11} />
                     {guestCount || 1} khách
                   </span>
-                  {displayTime && (
+                  {elapsed && (
                     <span className="flex items-center gap-1">
                       <Clock size={11} />
-                      {displayTime}
+                      {elapsed}
                     </span>
                   )}
                 </div>
