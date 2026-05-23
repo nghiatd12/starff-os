@@ -4,7 +4,7 @@
  * Không cần đăng nhập. Khách quét QR → chọn món → gửi order.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { playOrderReady, playStaffCall } from '@/lib/sound'
+import { playStaffCall } from '@/lib/sound'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -103,7 +103,7 @@ function ErrorScreen({ message }) {
   )
 }
 
-function SuccessScreen({ total, onReset, onRequestPayment, actionStatus }) {
+function SuccessScreen({ total, onReset, actionStatus }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-slate-50 flex items-center justify-center p-6">
       <div className="text-center max-w-xs bg-white rounded-[28px] p-6 shadow-xl shadow-emerald-100">
@@ -116,12 +116,6 @@ function SuccessScreen({ total, onReset, onRequestPayment, actionStatus }) {
         <p className="text-slate-500 text-sm mb-1">Bếp đã nhận được order của bạn.</p>
         <p className="text-emerald-600 font-semibold text-lg mb-6">{formatPrice(total)}</p>
         <p className="text-slate-400 text-xs mb-6">Vui lòng chờ nhân viên mang món ra. Cảm ơn bạn! 🍺</p>
-        <button
-          onClick={onRequestPayment}
-          className="w-full py-3 rounded-2xl bg-slate-900 text-white font-semibold text-sm active:scale-95 transition-transform mb-3"
-        >
-          Gọi thanh toán
-        </button>
         {actionStatus && (
           <p className="text-xs font-medium text-emerald-700 bg-emerald-50 rounded-2xl px-3 py-2 mb-3">
             {actionStatus}
@@ -307,7 +301,7 @@ function getCategoryEmoji(category) {
   return map[category] || '🍽️'
 }
 
-function GuestActionBar({ onCallStaff, onRequestPayment, actionStatus }) {
+function GuestActionBar({ onCallStaff, actionStatus }) {
   return (
     <div className="pb-1 bg-white">
       <div className="flex gap-3 overflow-x-auto pb-1">
@@ -316,18 +310,6 @@ function GuestActionBar({ onCallStaff, onRequestPayment, actionStatus }) {
         className="shrink-0 rounded-2xl px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 active:scale-[0.98] transition-transform"
       >
         <span className="text-sm font-bold">🙋 Gọi nhân viên</span>
-      </button>
-      <button
-        onClick={onRequestPayment}
-        className="shrink-0 rounded-2xl px-4 py-3 bg-emerald-50 border border-emerald-100 text-emerald-700 active:scale-[0.98] transition-transform"
-      >
-        <span className="text-sm font-bold">💳 Gọi thanh toán</span>
-      </button>
-      <button
-        onClick={onCallStaff}
-        className="shrink-0 rounded-2xl px-4 py-3 bg-yellow-50 border border-yellow-100 text-yellow-700 active:scale-[0.98] transition-transform"
-      >
-        <span className="text-sm font-bold">🧹 Dọn bàn</span>
       </button>
       </div>
       {actionStatus && (
@@ -527,22 +509,6 @@ export default function GuestMenuPage({ slug, tableId }) {
     }
   }
 
-  const handleRequestPayment = async () => {
-    try {
-      await apiFetch(`/public/${slug}/request-payment`, {
-        method: 'POST',
-        body: JSON.stringify({
-          tableId: parseInt(tableId),
-          total: cart.reduce((sum, item) => sum + item.price * item.qty, 0) || orderTotal || 0,
-        }),
-      })
-      playOrderReady()
-      showActionStatus('Đã gọi thanh toán. Thu ngân đã nhận thông báo.')
-    } catch (err) {
-      showActionStatus(err.message || 'Chưa gọi được thanh toán, vui lòng thử lại.')
-    }
-  }
-
   const handleReset = () => {
     setState('menu')
     setCart([])
@@ -556,7 +522,6 @@ export default function GuestMenuPage({ slug, tableId }) {
       <SuccessScreen
         total={orderTotal}
         onReset={handleReset}
-        onRequestPayment={handleRequestPayment}
         actionStatus={actionStatus}
       />
     )
@@ -583,27 +548,10 @@ export default function GuestMenuPage({ slug, tableId }) {
               <span className="text-sm text-slate-500">Chào mừng bạn! 👋</span>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={handleCallStaff}
-              className="w-11 h-11 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-lg"
-              aria-label="Gọi nhân viên"
-            >
-              🔔
-            </button>
-            <button
-              onClick={handleRequestPayment}
-              className="w-11 h-11 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-lg"
-              aria-label="Gọi thanh toán"
-            >
-              💳
-            </button>
-          </div>
         </div>
 
         <GuestActionBar
           onCallStaff={handleCallStaff}
-          onRequestPayment={handleRequestPayment}
           actionStatus={actionStatus}
         />
         <div className="mt-3">
