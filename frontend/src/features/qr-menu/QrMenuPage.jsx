@@ -9,14 +9,27 @@ import { getUser } from '@/lib/auth'
 
 /**
  * Tạo URL QR menu cho khách.
- * Dùng VITE_APP_URL nếu có, fallback về origin hiện tại.
+ * Trên Vercel luôn dùng production domain để QR không trỏ vào preview deployment cũ.
  * Path: /menu/:slug/ban/:tableId
  */
+const PRODUCTION_APP_URL = 'https://staff-os-eight.vercel.app'
+
+function isVercelPreviewUrl(value) {
+  try {
+    const url = new URL(value)
+    return url.hostname.endsWith('.vercel.app') && url.hostname !== new URL(PRODUCTION_APP_URL).hostname
+  } catch {
+    return false
+  }
+}
+
 function getTableUrl(slug, tableId) {
-  const configuredBase = import.meta.env.VITE_APP_URL
+  const configuredBase = import.meta.env.VITE_APP_URL?.replace(/\/$/, '')
   const host = window.location.hostname
-  const isVercelPreview = host.endsWith('.vercel.app') && host !== 'staff-os-eight.vercel.app'
-  const base = configuredBase || (isVercelPreview ? 'https://staff-os-eight.vercel.app' : window.location.origin)
+  const isVercelHost = host.endsWith('.vercel.app')
+  const base = isVercelHost
+    ? (configuredBase && !isVercelPreviewUrl(configuredBase) ? configuredBase : PRODUCTION_APP_URL)
+    : (configuredBase || window.location.origin)
   return `${base}/menu/${slug}/ban/${tableId}`
 }
 
