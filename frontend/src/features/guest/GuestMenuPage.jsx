@@ -58,9 +58,24 @@ async function apiFetch(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || `Lỗi ${res.status}`)
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || data.message || `Lỗi ${res.status}`)
   return data
+}
+
+function normalizeMenuResponse(res) {
+  const menu = res?.menu && typeof res.menu === 'object' ? res.menu : {}
+  const categories = Array.isArray(res?.categories)
+    ? res.categories.filter((category) => Array.isArray(menu[category]))
+    : Object.keys(menu).filter((category) => Array.isArray(menu[category]))
+
+  return {
+    ...res,
+    tenant: res?.tenant || { name: 'StaffOS' },
+    table: res?.table || { name: 'Bàn' },
+    menu,
+    categories,
+  }
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -398,8 +413,9 @@ export default function GuestMenuPage({ slug, tableId }) {
   useEffect(() => {
     apiFetch(`/public/${slug}/table/${tableId}`)
       .then((res) => {
-        setData(res)
-        setActiveCategory(res.categories[0] || '')
+        const normalized = normalizeMenuResponse(res)
+        setData(normalized)
+        setActiveCategory(normalized.categories[0] || '')
         setState('menu')
       })
       .catch((err) => {

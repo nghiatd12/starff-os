@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { query, queryOne, queryAll } from '../db/pool.js'
+import { emitToRoles } from '../socketRooms.js'
 
 const router = Router()
 
@@ -14,7 +15,8 @@ router.get('/:slug/table/:tableId', async (req, res) => {
 
     // Tìm tenant theo slug
     const tenant = await queryOne(
-      'SELECT id, name, address FROM tenants WHERE slug = $1',
+      `SELECT id, name, address FROM tenants
+       WHERE slug = $1 AND status = 'active' AND deleted_at IS NULL`,
       [slug]
     )
     if (!tenant) {
@@ -82,7 +84,8 @@ router.post('/:slug/orders', async (req, res) => {
 
     // Tìm tenant
     const tenant = await queryOne(
-      'SELECT id FROM tenants WHERE slug = $1',
+      `SELECT id FROM tenants
+       WHERE slug = $1 AND status = 'active' AND deleted_at IS NULL`,
       [slug]
     )
     if (!tenant) {
@@ -156,8 +159,8 @@ router.post('/:slug/orders', async (req, res) => {
 
     // Broadcast order khách QR tới tất cả màn hình đang online.
     const io = req.app.get('io')
-    io.emit('new-order', fullOrder)
-    io.emit('table-updated', { id: tableId, status: 'occupied' })
+    emitToRoles(io, tenant.id, ['kitchen', 'waiter', 'cashier'], 'new-order', fullOrder)
+    emitToRoles(io, tenant.id, ['waiter', 'cashier'], 'table-updated', { id: tableId, status: 'occupied' })
 
     res.status(201).json({
       success: true,
@@ -173,7 +176,8 @@ router.post('/:slug/orders', async (req, res) => {
 
 async function getGuestActionContext(slug, tableId) {
   const tenant = await queryOne(
-    'SELECT id, name, slug FROM tenants WHERE slug = $1',
+    `SELECT id, name, slug FROM tenants
+     WHERE slug = $1 AND status = 'active' AND deleted_at IS NULL`,
     [slug]
   )
   if (!tenant) return { error: 'Không tìm thấy quán', status: 404 }
@@ -216,7 +220,7 @@ router.post('/:slug/call-staff', async (req, res) => {
       createdAt: new Date().toISOString(),
     }
 
-    req.app.get('io').emit('guest-call-staff', payload)
+    emitToRoles(req.app.get('io'), context.tenant.id, ['waiter', 'cashier'], 'guest-call-staff', payload)
 
     res.json({ success: true, message: 'Đã gọi nhân viên' })
   } catch (err) {
@@ -255,7 +259,7 @@ router.post('/:slug/request-payment', async (req, res) => {
       createdAt: new Date().toISOString(),
     }
 
-    req.app.get('io').emit('guest-request-payment', payload)
+    emitToRoles(req.app.get('io'), context.tenant.id, ['waiter', 'cashier'], 'guest-request-payment', payload)
 
     res.json({ success: true, message: 'Đã gọi thanh toán' })
   } catch (err) {

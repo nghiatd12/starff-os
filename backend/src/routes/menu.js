@@ -69,7 +69,11 @@ async function resolveTenantId(req) {
   }
 
   if (!tenantId && req.query.tenant) {
-    const tenant = await queryOne('SELECT id FROM tenants WHERE slug = $1', [req.query.tenant])
+    const tenant = await queryOne(
+      `SELECT id FROM tenants
+       WHERE slug = $1 AND status = 'active' AND deleted_at IS NULL`,
+      [req.query.tenant]
+    )
     tenantId = tenant?.id || null
   }
 

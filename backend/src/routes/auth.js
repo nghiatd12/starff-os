@@ -6,6 +6,26 @@ import { authenticate } from '../middleware/auth.js'
 
 const router = Router()
 
+function createSlug(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+async function uniqueSlug(name) {
+  const base = createSlug(name) || `quan-${Date.now()}`
+  let slug = base
+  let suffix = 1
+  while (await queryOne('SELECT id FROM tenants WHERE slug = $1', [slug])) {
+    suffix += 1
+    slug = `${base}-${suffix}`
+  }
+  return slug
+}
+
 /**
  * POST /api/auth/register
  * Đăng ký quán mới (tạo tenant + user chủ quán)
@@ -26,12 +46,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Tạo slug từ tên quán
-    const slug = restaurantName
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
+    const slug = await uniqueSlug(restaurantName)
 
     // Tạo tenant
     const { rows: [tenant] } = await query(
@@ -149,7 +164,18 @@ router.get('/me', authenticate, async (req, res) => {
       [req.user.id]
     )
     if (!user) return res.status(404).json({ error: 'User not found' })
-    res.json({ user })
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+        store: user.store_name,
+        storeSlug: user.store_slug,
+        store_name: user.store_name,
+        store_slug: user.store_slug,
+      },
+    })
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server' })
   }

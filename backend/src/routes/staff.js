@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import bcrypt from 'bcrypt'
-import { query, queryOne } from '../db/pool.js'
+import { query, queryOne, queryAll } from '../db/pool.js'
 import { authenticate, authorize } from '../middleware/auth.js'
 
 const router = Router()
@@ -20,14 +20,14 @@ const ROLE_LABEL = {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { tenantId } = req.user
-    const rows = await query(
+    const employees = await queryAll(
       `SELECT id, name, phone, role, pin, is_active, created_at
        FROM users
        WHERE tenant_id = $1 AND role != 'owner'
        ORDER BY created_at ASC`,
       [tenantId]
     )
-    res.json(rows)
+    res.json({ employees })
   } catch (err) {
     console.error('[Staff] GET error:', err)
     res.status(500).json({ error: 'Lỗi server' })

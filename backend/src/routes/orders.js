@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { query, queryOne, queryAll } from '../db/pool.js'
 import { authenticate } from '../middleware/auth.js'
+import { emitToRoles } from '../socketRooms.js'
 
 const router = Router()
 router.use(authenticate)
@@ -17,8 +18,32 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Thiếu bàn hoặc món' })
     }
 
+    const table = await queryOne(
+      'SELECT id FROM tables WHERE id = $1 AND tenant_id = $2',
+      [tableId, req.user.tenantId]
+    )
+    if (!table) return res.status(404).json({ error: 'Không tìm thấy bàn' })
+
+    const validatedItems = []
+    for (const rawItem of items) {
+      const menuItem = await queryOne(
+        'SELECT id, name, price FROM menu_items WHERE id = $1 AND tenant_id = $2 AND available = true',
+        [rawItem.menuItemId, req.user.tenantId]
+      )
+      if (!menuItem) {
+        return res.status(400).json({ error: `Món "${rawItem.name || rawItem.menuItemId}" không còn phục vụ` })
+      }
+      validatedItems.push({
+        menuItemId: menuItem.id,
+        name: menuItem.name,
+        price: menuItem.price,
+        quantity: Math.max(1, parseInt(rawItem.quantity) || 1),
+        note: rawItem.note || '',
+      })
+    }
+
     // Tạo order
-    const total = items.reduce((s, i) => s + i.price * i.quantity, 0)
+    const total = validatedItems.reduce((s, i) => s + i.price * i.quantity, 0)
     const { rows: [order] } = await query(
       `INSERT INTO orders (tenant_id, table_id, user_id, guest_count, note, total, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'open') RETURNING *`,
@@ -26,11 +51,11 @@ router.post('/', async (req, res) => {
     )
 
     // Thêm từng món
-    for (const item of items) {
+    for (const item of validatedItems) {
       await query(
         `INSERT INTO order_items (order_id, menu_item_id, name, price, quantity, note, status)
          VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
-        [order.id, item.menuItemId, item.name, item.price, item.quantity, item.note || '']
+        [order.id, item.menuItemId, item.name, item.price, item.quantity, item.note]
       )
     }
 
@@ -50,8 +75,8 @@ router.post('/', async (req, res) => {
 
     // 🔥 Emit realtime → màn hình bếp
     const io = req.app.get('io')
-    io.to('kitchen').emit('new-order', fullOrder)
-    io.to('waiter').emit('table-updated', { id: tableId, status: 'occupied' })
+    emitToRoles(io, req.user.tenantId, ['kitchen'], 'new-order', fullOrder)
+    emitToRoles(io, req.user.tenantId, ['waiter'], 'table-updated', { id: tableId, status: 'occupied' })
 
     res.status(201).json({ order: fullOrder })
   } catch (err) {
@@ -102,15 +127,21 @@ router.patch('/:id/items/:itemId', async (req, res) => {
     }
 
     const { rows: [item] } = await query(
-      `UPDATE order_items SET status = $1 WHERE id = $2 AND order_id = $3 RETURNING *`,
-      [status, req.params.itemId, req.params.id]
+      `UPDATE order_items oi
+       SET status = $1
+       FROM orders o
+       WHERE oi.order_id = o.id
+         AND oi.id = $2
+         AND oi.order_id = $3
+         AND o.tenant_id = $4
+       RETURNING oi.*`,
+      [status, req.params.itemId, req.params.id, req.user.tenantId]
     )
     if (!item) return res.status(404).json({ error: 'Không tìm thấy món' })
 
     // Emit realtime
     const io = req.app.get('io')
-    io.to('kitchen').emit('item-updated', { orderId: parseInt(req.params.id), item })
-    io.to('waiter').emit('item-updated', { orderId: parseInt(req.params.id), item })
+    emitToRoles(io, req.user.tenantId, ['kitchen', 'waiter'], 'item-updated', { orderId: parseInt(req.params.id), item })
 
     res.json({ item })
   } catch (err) {
@@ -132,14 +163,14 @@ router.patch('/:id/complete', async (req, res) => {
 
     // Cập nhật bàn → waiting (chờ mang ra)
     await query(
-      `UPDATE tables SET status = 'waiting' WHERE id = $1`,
-      [order.table_id]
+      `UPDATE tables SET status = 'waiting' WHERE id = $1 AND tenant_id = $2`,
+      [order.table_id, req.user.tenantId]
     )
 
     // Emit
     const io = req.app.get('io')
-    io.to('waiter').emit('order-ready', order)
-    io.to('kitchen').emit('order-completed', { orderId: order.id })
+    emitToRoles(io, req.user.tenantId, ['waiter'], 'order-ready', order)
+    emitToRoles(io, req.user.tenantId, ['kitchen'], 'order-completed', { orderId: order.id })
 
     res.json({ order })
   } catch (err) {
@@ -164,13 +195,13 @@ router.patch('/:id/pay', async (req, res) => {
 
     // Bàn trống lại
     await query(
-      `UPDATE tables SET status = 'empty' WHERE id = $1`,
-      [order.table_id]
+      `UPDATE tables SET status = 'empty' WHERE id = $1 AND tenant_id = $2`,
+      [order.table_id, req.user.tenantId]
     )
 
     // Emit
     const io = req.app.get('io')
-    io.to('waiter').to('cashier').emit('table-updated', { id: order.table_id, status: 'empty' })
+    emitToRoles(io, req.user.tenantId, ['waiter', 'cashier'], 'table-updated', { id: order.table_id, status: 'empty' })
 
     res.json({ order, message: 'Thanh toán thành công' })
   } catch (err) {

@@ -52,7 +52,7 @@ export default function EmployeeTable() {
     setError('')
     try {
       const data = await api.get('/staff')
-      setEmployees(data)
+      setEmployees(Array.isArray(data) ? data : data.employees || data.rows || [])
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách nhân viên')
     } finally {

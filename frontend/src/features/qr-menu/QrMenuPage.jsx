@@ -26,8 +26,9 @@ export default function QrMenuPage() {
 
   // Lấy slug từ user đã lưu trong localStorage
   const user = getUser()
-  const storeSlug = user?.store_slug || user?.storeSlug || 'my-store'
-  const storeName = user?.store || 'Quán của bạn'
+  const storeSlug = user?.store_slug || user?.storeSlug || ''
+  const storeName = user?.store || user?.store_name || 'Quán của bạn'
+  const canGenerateQr = Boolean(storeSlug)
 
   useEffect(() => {
     api.get('/tables')
@@ -37,6 +38,7 @@ export default function QrMenuPage() {
   }, [])
 
   const handleCopy = (table) => {
+    if (!canGenerateQr) return
     const url = getTableUrl(storeSlug, table.id)
     navigator.clipboard?.writeText(url)
     setCopiedId(table.id)
@@ -49,6 +51,7 @@ export default function QrMenuPage() {
   }
 
   const handleOpenMenu = (table) => {
+    if (!canGenerateQr) return
     const url = getTableUrl(storeSlug, table.id)
     window.open(url, '_blank')
   }
@@ -101,9 +104,16 @@ export default function QrMenuPage() {
         </Card>
         <Card className="p-4">
           <p className="text-[11px] text-slate-400 mb-1">Slug quán</p>
-          <p className="text-sm font-medium text-emerald-700 truncate">{storeSlug}</p>
+          <p className="text-sm font-medium text-emerald-700 truncate">{storeSlug || 'Chưa có slug'}</p>
         </Card>
       </div>
+
+      {!canGenerateQr && (
+        <Card className="p-4 mb-6 border-amber-100 bg-amber-50">
+          <p className="text-sm font-semibold text-amber-800">Không tạo được QR vì thiếu slug quán.</p>
+          <p className="text-xs text-amber-700 mt-1">Vui lòng đăng xuất rồi đăng nhập lại để đồng bộ thông tin quán.</p>
+        </Card>
+      )}
 
       {tables.length === 0 ? (
         <div className="flex items-center justify-center py-20">
@@ -115,7 +125,7 @@ export default function QrMenuPage() {
           <div className="flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {tables.map((table) => {
-                const url = getTableUrl(storeSlug, table.id)
+                const url = canGenerateQr ? getTableUrl(storeSlug, table.id) : ''
                 return (
                   <Card key={table.id} className="p-5">
                     <div className="flex items-start justify-between mb-3">
@@ -132,7 +142,7 @@ export default function QrMenuPage() {
                     <div className="flex justify-center my-4">
                       <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-soft">
                         <QRCodeSVG
-                          value={url}
+                          value={url || 'missing-store-slug'}
                           size={120}
                           level="M"
                           bgColor="#ffffff"
@@ -148,6 +158,7 @@ export default function QrMenuPage() {
                         size="sm"
                         className="flex-1"
                         onClick={() => handleCopy(table)}
+                        disabled={!canGenerateQr}
                       >
                         {copiedId === table.id ? (
                           <><CheckCircle2 size={14} className="text-emerald-500" />Đã copy</>
@@ -159,6 +170,7 @@ export default function QrMenuPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleOpenMenu(table)}
+                        disabled={!canGenerateQr}
                         title="Mở trang menu khách"
                       >
                         <ExternalLink size={14} />
@@ -167,6 +179,7 @@ export default function QrMenuPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handlePreview(table)}
+                        disabled={!canGenerateQr}
                         title="Xem trước"
                       >
                         <Smartphone size={14} />

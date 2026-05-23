@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { query, queryOne, queryAll } from '../db/pool.js'
 import { authenticate, authorize } from '../middleware/auth.js'
+import { emitToRoles } from '../socketRooms.js'
 
 const router = Router()
 
@@ -62,7 +63,7 @@ router.patch('/:id/status', async (req, res) => {
     if (!table) return res.status(404).json({ error: 'Không tìm thấy bàn' })
 
     // Emit realtime event
-    req.app.get('io').to('waiter').to('cashier').emit('table-updated', table)
+    emitToRoles(req.app.get('io'), req.user.tenantId, ['waiter', 'cashier'], 'table-updated', table)
 
     res.json({ table })
   } catch (err) {

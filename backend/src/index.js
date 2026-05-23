@@ -3,6 +3,8 @@ import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import jwt from 'jsonwebtoken'
+import { roleRoom } from './socketRooms.js'
 
 // Routes
 import authRoutes from './routes/auth.js'
@@ -48,6 +50,18 @@ const corsOptions = {
 // Socket.IO — realtime cho KDS
 const io = new Server(httpServer, { cors: corsOptions })
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token
+  if (!token) return next()
+
+  try {
+    socket.user = jwt.verify(token, process.env.JWT_SECRET)
+  } catch (err) {
+    console.warn(`[Socket] Invalid token for ${socket.id}: ${err.message}`)
+  }
+  next()
+})
+
 // Middleware
 app.use(cors(corsOptions))
 app.use(express.json())
@@ -75,8 +89,15 @@ io.on('connection', (socket) => {
 
   // Join room theo role (kitchen, waiter, cashier)
   socket.on('join-role', (role) => {
-    socket.join(role)
-    console.log(`[Socket] ${socket.id} joined room: ${role}`)
+    const tenantId = socket.user?.tenantId
+    if (!tenantId) {
+      console.warn(`[Socket] ${socket.id} cannot join ${role}: missing tenant`)
+      return
+    }
+
+    const room = roleRoom(tenantId, role)
+    socket.join(room)
+    console.log(`[Socket] ${socket.id} joined room: ${room}`)
   })
 
   socket.on('disconnect', () => {
