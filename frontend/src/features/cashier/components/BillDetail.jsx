@@ -40,6 +40,19 @@ export default function BillDetail({ table, orders, onPaid }) {
   const subtotal = mergedItems.reduce((s, i) => s + i.price * i.qty, 0)
   const discountAmt = discount ? Math.round(subtotal * (parseFloat(discount) / 100)) : 0
   const total = subtotal - discountAmt
+  const billCode = tableOrders.map((order) => `#${order.id}`).join(', ') || `Bàn ${table.id}`
+  const printedAt = new Date().toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+  const paymentLabel = PAYMENT_METHODS.find((method) => method.id === payMethod)?.label || payMethod
+
+  const handlePrint = () => {
+    window.print()
+  }
 
   const handlePay = async () => {
     if (tableOrders.length === 0) return
@@ -69,7 +82,11 @@ export default function BillDetail({ table, orders, onPaid }) {
             {tableOrders.length} lần gọi · {mergedItems.length} món
           </p>
         </div>
-        <button className="flex items-center gap-2 border border-slate-200 text-slate-600 px-4 py-2 rounded-2xl text-sm hover:bg-slate-50 transition-colors font-medium">
+        <button
+          onClick={handlePrint}
+          disabled={mergedItems.length === 0}
+          className="flex items-center gap-2 border border-slate-200 text-slate-600 px-4 py-2 rounded-2xl text-sm hover:bg-slate-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Printer size={16} />
           In hóa đơn
         </button>
@@ -173,6 +190,97 @@ export default function BillDetail({ table, orders, onPaid }) {
             {paying ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(total)}`}
           </button>
         </Card>
+      </div>
+      <PrintableBill
+        table={table}
+        billCode={billCode}
+        printedAt={printedAt}
+        items={mergedItems}
+        subtotal={subtotal}
+        discount={parseFloat(discount) || 0}
+        discountAmt={discountAmt}
+        total={total}
+        paymentLabel={paymentLabel}
+      />
+    </div>
+  )
+}
+
+function PrintableBill({
+  table,
+  billCode,
+  printedAt,
+  items,
+  subtotal,
+  discount,
+  discountAmt,
+  total,
+  paymentLabel,
+}) {
+  return (
+    <div className="print-bill">
+      <div className="print-bill__header">
+        <h1>StaffOS</h1>
+        <p>Hóa đơn thanh toán</p>
+      </div>
+
+      <div className="print-bill__meta">
+        <div>
+          <span>Bàn</span>
+          <strong>{table.name}</strong>
+        </div>
+        <div>
+          <span>Mã đơn</span>
+          <strong>{billCode}</strong>
+        </div>
+        <div>
+          <span>Thời gian</span>
+          <strong>{printedAt}</strong>
+        </div>
+      </div>
+
+      <table className="print-bill__table">
+        <thead>
+          <tr>
+            <th>Món</th>
+            <th>SL</th>
+            <th>Giá</th>
+            <th>T.Tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={`${item.name}-${index}`}>
+              <td>{item.name}</td>
+              <td>{item.qty}</td>
+              <td>{formatCurrency(item.price)}</td>
+              <td>{formatCurrency(item.price * item.qty)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="print-bill__totals">
+        <div>
+          <span>Tạm tính</span>
+          <strong>{formatCurrency(subtotal)}</strong>
+        </div>
+        <div>
+          <span>Giảm giá{discount ? ` (${discount}%)` : ''}</span>
+          <strong>-{formatCurrency(discountAmt)}</strong>
+        </div>
+        <div className="print-bill__grand-total">
+          <span>Tổng cộng</span>
+          <strong>{formatCurrency(total)}</strong>
+        </div>
+        <div>
+          <span>Thanh toán</span>
+          <strong>{paymentLabel}</strong>
+        </div>
+      </div>
+
+      <div className="print-bill__footer">
+        <p>Cảm ơn quý khách. Hẹn gặp lại!</p>
       </div>
     </div>
   )
