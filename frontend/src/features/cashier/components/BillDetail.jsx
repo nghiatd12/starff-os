@@ -201,7 +201,10 @@ export default function BillDetail({ table, orders, onPaid }) {
                     return (
                       <button
                         key={method.id}
-                        onClick={() => setPayMethod(method.id)}
+                        onClick={() => {
+                          setPayMethod(method.id)
+                          if (method.id === 'qr') setShowQrModal(true)
+                        }}
                         className={`rounded-2xl border-2 p-4 text-center transition-all ${
                           payMethod === method.id
                             ? 'border-brand-500 bg-brand-50 shadow-sm'
@@ -219,52 +222,6 @@ export default function BillDetail({ table, orders, onPaid }) {
                   })}
                 </div>
               </div>
-
-              {payMethod === 'qr' && (
-                <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
-                  <div className="flex items-start gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowQrModal(true)}
-                      className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white bg-white p-2 shadow-sm transition-transform hover:scale-[1.02]"
-                    >
-                      {paymentQrImageUrl ? (
-                        <img
-                          src={paymentQrImageUrl}
-                          alt="QR thanh toán"
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <QrCode size={40} className="text-emerald-500" strokeWidth={1.5} />
-                      )}
-                    </button>
-                    <div className="min-w-0 flex-1 pt-1">
-                      <p className="text-sm font-bold text-slate-800">
-                        {paymentSettings.qrName || 'QR thanh toán'}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-slate-500">
-                        {paymentQrImageUrl
-                          ? paymentSettings.qrMode === 'vietqr'
-                            ? `QR đã có sẵn số tiền ${formatCurrency(total)}.`
-                            : 'Khách quét QR rồi bấm thanh toán để in bill.'
-                          : 'Chưa có ảnh QR. Vào Cài đặt > QR thanh toán để upload ảnh QR của quán.'}
-                      </p>
-                      {paymentSettings.qrNote && (
-                        <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-medium text-emerald-700">
-                          {paymentSettings.qrNote}
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowQrModal(true)}
-                        className="mt-3 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
-                      >
-                        Phóng to QR
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="border-t border-slate-100 p-5">
