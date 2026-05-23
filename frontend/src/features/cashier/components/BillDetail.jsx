@@ -124,7 +124,7 @@ export default function BillDetail({ table, orders, onPaid }) {
               <p className="text-slate-400 text-sm">Không có dữ liệu</p>
             </div>
           ) : (
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[300px] overflow-y-auto xl:max-h-[34vh]">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white">
                   <tr className="text-[11px] text-slate-400 border-b border-slate-100 uppercase tracking-wider">
