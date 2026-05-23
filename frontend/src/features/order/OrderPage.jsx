@@ -4,6 +4,7 @@ import { useTables, useMenu } from '@/lib/useStore'
 import { fetchOrders } from '@/lib/store'
 import MenuGrid from './components/MenuGrid'
 import OrderSummary from './components/OrderSummary'
+import Select from '@/components/ui/Select'
 
 export default function OrderPage() {
   const { menu: menuData, categories, loading: menuLoading } = useMenu()
@@ -105,17 +106,13 @@ export default function OrderPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">Bàn:</span>
-              <select
+              <Select
                 value={selectedTable}
-                onChange={(e) => setSelectedTable(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300"
-              >
-                {tables
-                  .filter((t) => t.status !== 'empty')
-                  .map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
-                  ))}
-              </select>
+                onChange={setSelectedTable}
+                options={tables.filter((t) => t.status !== 'empty').map((t) => ({ value: t.name, label: t.name }))}
+                placeholder="Chọn bàn"
+                className="w-40"
+              />
             </div>
           </div>
 

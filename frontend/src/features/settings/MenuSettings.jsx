@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { fetchMenu } from '@/lib/store'
+import Select from '@/components/ui/Select'
 import {
   CheckCircle2, Download, Pencil, Plus, Save, Trash2, Upload, X, Layers, FolderOpen,
 } from '@/components/ui/Icon'
@@ -181,14 +182,12 @@ function AddItemModal({
               {errors.name && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.name}</p>}
             </div>
             <div>
-              <select
+              <Select
                 value={item.category}
-                onChange={(e) => onChange({ ...item, category: e.target.value })}
-                className={inputCls + ' w-full'}
-              >
-                <option value="">Chọn danh mục *</option>
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+                onChange={(category) => onChange({ ...item, category })}
+                options={categories}
+                placeholder="Chọn danh mục *"
+              />
               {errors.category && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.category}</p>}
             </div>
             <div>
@@ -480,18 +479,17 @@ export default function MenuSettings() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <select
+              <Select
                 value={selectedSetId || ''}
-                onChange={(e) => setSelectedSetId(e.target.value ? Number(e.target.value) : null)}
-                className={inputCls + ' flex-1 min-w-0'}
-              >
-                <option value="">{loading ? 'Đang tải...' : 'Chọn bộ menu'}</option>
-                {sets.map((set) => (
-                  <option key={set.id} value={set.id}>
-                    {set.name}{set.is_active ? ' - Đang dùng' : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setSelectedSetId(value ? Number(value) : null)}
+                options={sets.map((set) => ({
+                  value: set.id,
+                  label: `${set.name}${set.is_active ? ' - Đang dùng' : ''}`,
+                }))}
+                placeholder={loading ? 'Đang tải...' : 'Chọn bộ menu'}
+                className="flex-1 min-w-0"
+                disabled={loading}
+              />
               {selectedSet && !selectedSet.is_active && (
                 <button
                   onClick={() => handleActivateSet(selectedSet.id)}
@@ -514,13 +512,11 @@ export default function MenuSettings() {
                   placeholder="Tên bộ menu"
                   className={inputCls}
                 />
-                <select
+                <Select
                   value={newSet.type}
-                  onChange={(e) => setNewSet({ ...newSet, type: e.target.value })}
-                  className={inputCls}
-                >
-                  {MENU_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                  onChange={(type) => setNewSet({ ...newSet, type })}
+                  options={MENU_TYPES}
+                />
                 <button onClick={handleCreateSet} className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700">Tạo</button>
                 <button onClick={() => setShowNewSet(false)} className="px-3 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold hover:bg-slate-200">Hủy</button>
               </div>
@@ -596,14 +592,16 @@ export default function MenuSettings() {
                 <Plus size={13} />
                 Thêm món
               </button>
-              <select
+              <Select
                 value={importMode}
-                onChange={(e) => setImportMode(e.target.value)}
-                className="border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-600 focus:outline-none"
-              >
-                <option value="append">Import thêm</option>
-                <option value="replace">Thay thế</option>
-              </select>
+                onChange={setImportMode}
+                options={[
+                  { value: 'append', label: 'Import thêm' },
+                  { value: 'replace', label: 'Thay thế' },
+                ]}
+                className="w-32"
+                buttonClassName="h-8 rounded-xl px-2.5 text-xs shadow-none"
+              />
               <button
                 onClick={handleDownloadTemplate}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition-colors"
@@ -661,13 +659,12 @@ export default function MenuSettings() {
                               />
                             </td>
                             <td className="px-4 py-2.5">
-                              <select
+                              <Select
                                 value={editingItem.category}
-                                onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                                className={inputCls + ' w-full'}
-                              >
-                                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                              </select>
+                                onChange={(category) => setEditingItem({ ...editingItem, category })}
+                                options={categories}
+                                placeholder="Chọn danh mục"
+                              />
                             </td>
                             <td className="px-4 py-2.5">
                               <input

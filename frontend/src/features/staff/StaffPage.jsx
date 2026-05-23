@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus } from '@/components/ui/Icon'
 import { api } from '@/lib/api'
 import EmployeeTable from './components/EmployeeTable'
+import Select from '@/components/ui/Select'
 
 const ROLES = [
   { value: 'manager', label: 'Quản lý' },
@@ -114,16 +115,12 @@ function AddEmployeeModal({ onClose, onAdded }) {
           {/* Vai trò */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">Vai trò *</label>
-            <select
-              name="role"
+            <Select
               value={form.role}
-              onChange={handleChange}
-              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white"
-            >
-              {ROLES.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
+              onChange={(role) => setForm((current) => ({ ...current, role }))}
+              options={ROLES}
+              placeholder="Chọn vai trò"
+            />
           </div>
 
           {/* PIN */}
