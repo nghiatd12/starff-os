@@ -296,6 +296,77 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
+                    <label className="text-xs font-medium text-slate-500 mb-2 block">Kiểu QR</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { id: 'upload', label: 'Upload ảnh QR', desc: 'QR tĩnh, giống ảnh bạn tải lên' },
+                        { id: 'vietqr', label: 'Tự động theo số tiền', desc: 'QR VietQR đổi theo tổng bill' },
+                      ].map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => updatePaymentSettings({ qrMode: option.id })}
+                          className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                            paymentSettings.qrMode === option.id
+                              ? 'border-emerald-500 bg-emerald-50'
+                              : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <p className="text-sm font-bold text-slate-800">{option.label}</p>
+                          <p className="mt-1 text-xs text-slate-500">{option.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {paymentSettings.qrMode === 'vietqr' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4">
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Mã ngân hàng</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.bankCode}
+                          onChange={(e) => updatePaymentSettings({ bankCode: e.target.value.trim().toUpperCase() })}
+                          placeholder="VD: VCB, ACB, TCB, MB"
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Số tài khoản</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.accountNumber}
+                          onChange={(e) => updatePaymentSettings({ accountNumber: e.target.value.trim() })}
+                          placeholder="VD: 0123456789"
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Tên chủ tài khoản</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.accountName}
+                          onChange={(e) => updatePaymentSettings({ accountName: e.target.value })}
+                          placeholder="VD: NGUYEN VAN A"
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Mẫu QR</label>
+                        <select
+                          value={paymentSettings.qrTemplate}
+                          onChange={(e) => updatePaymentSettings({ qrTemplate: e.target.value })}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                        >
+                          <option value="compact2">Đẹp gọn</option>
+                          <option value="compact">Gọn</option>
+                          <option value="qr_only">Chỉ QR</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
                     <label className="text-xs font-medium text-slate-500 mb-1 block">Ghi chú chuyển khoản</label>
                     <input
                       type="text"
@@ -306,6 +377,7 @@ export default function SettingsPage() {
                     />
                   </div>
 
+                  {paymentSettings.qrMode !== 'vietqr' && (
                   <div>
                     <label className="text-xs font-medium text-slate-500 mb-2 block">Ảnh QR</label>
                     <div className="flex flex-wrap items-center gap-3">
@@ -329,6 +401,7 @@ export default function SettingsPage() {
                       Có thể chụp màn hình QR từ app ngân hàng rồi upload trực tiếp.
                     </p>
                   </div>
+                  )}
 
                   <button
                     type="button"
@@ -354,7 +427,13 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="aspect-square rounded-3xl border border-dashed border-slate-200 bg-white p-4">
-                    {paymentSettings.qrImage ? (
+                    {paymentSettings.qrMode === 'vietqr' && paymentSettings.bankCode && paymentSettings.accountNumber ? (
+                      <img
+                        src={`https://img.vietqr.io/image/${paymentSettings.bankCode}-${paymentSettings.accountNumber}-${paymentSettings.qrTemplate || 'compact2'}.png?amount=125000&addInfo=Thanh%20toan%20demo&accountName=${encodeURIComponent(paymentSettings.accountName || '')}`}
+                        alt="QR thanh toán demo"
+                        className="h-full w-full rounded-2xl object-contain"
+                      />
+                    ) : paymentSettings.qrImage ? (
                       <img
                         src={paymentSettings.qrImage}
                         alt="QR thanh toán"

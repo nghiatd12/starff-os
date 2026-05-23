@@ -1,9 +1,14 @@
 const PAYMENT_SETTINGS_KEY = 'staffos_payment_settings'
 
 const DEFAULT_PAYMENT_SETTINGS = {
+  qrMode: 'upload',
   qrImage: '',
   qrName: '',
   qrNote: '',
+  bankCode: '',
+  accountNumber: '',
+  accountName: '',
+  qrTemplate: 'compact2',
 }
 
 export function getPaymentSettings() {
@@ -36,4 +41,18 @@ export function subscribePaymentSettings(callback) {
     window.removeEventListener('staffos-payment-settings-change', handleCustomChange)
     window.removeEventListener('storage', handleStorage)
   }
+}
+
+export function getPaymentQrImageUrl(settings, { amount, billCode } = {}) {
+  const mergedSettings = { ...DEFAULT_PAYMENT_SETTINGS, ...settings }
+  if (mergedSettings.qrMode !== 'vietqr') return mergedSettings.qrImage
+  if (!mergedSettings.bankCode || !mergedSettings.accountNumber) return ''
+
+  const params = new URLSearchParams()
+  if (amount > 0) params.set('amount', String(Math.round(amount)))
+  if (billCode) params.set('addInfo', `Thanh toan ${billCode}`)
+  if (mergedSettings.accountName) params.set('accountName', mergedSettings.accountName)
+
+  const template = mergedSettings.qrTemplate || 'compact2'
+  return `https://img.vietqr.io/image/${encodeURIComponent(mergedSettings.bankCode)}-${encodeURIComponent(mergedSettings.accountNumber)}-${template}.png?${params.toString()}`
 }

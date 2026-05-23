@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
+import { getPaymentQrImageUrl, getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
 import { formatCurrency } from '@/utils/format'
 import { Printer, Banknote, Smartphone, QrCode, Wallet, Check } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
@@ -53,6 +53,7 @@ export default function BillDetail({ table, orders, onPaid }) {
     year: 'numeric',
   })
   const paymentLabel = PAYMENT_METHODS.find((method) => method.id === payMethod)?.label || payMethod
+  const paymentQrImageUrl = getPaymentQrImageUrl(paymentSettings, { amount: total, billCode })
 
   const handlePrint = () => {
     window.print()
@@ -190,9 +191,9 @@ export default function BillDetail({ table, orders, onPaid }) {
             <div className="mb-6 rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
               <div className="flex items-start gap-4">
                 <div className="flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white bg-white p-2 shadow-sm">
-                  {paymentSettings.qrImage ? (
+                  {paymentQrImageUrl ? (
                     <img
-                      src={paymentSettings.qrImage}
+                      src={paymentQrImageUrl}
                       alt="QR thanh toán"
                       className="h-full w-full object-contain"
                     />
@@ -205,8 +206,10 @@ export default function BillDetail({ table, orders, onPaid }) {
                     {paymentSettings.qrName || 'QR thanh toán'}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    {paymentSettings.qrImage
-                      ? 'Khách có thể quét QR này, sau đó bấm thanh toán để in bill.'
+                    {paymentQrImageUrl
+                      ? paymentSettings.qrMode === 'vietqr'
+                        ? `QR đã có sẵn số tiền ${formatCurrency(total)}.`
+                        : 'Khách có thể quét QR này, sau đó bấm thanh toán để in bill.'
                       : 'Chưa có ảnh QR. Vào Cài đặt > QR thanh toán để upload ảnh QR của quán.'}
                   </p>
                   {paymentSettings.qrNote && (
@@ -241,6 +244,7 @@ export default function BillDetail({ table, orders, onPaid }) {
         paymentLabel={paymentLabel}
         paymentMethod={payMethod}
         paymentSettings={paymentSettings}
+        paymentQrImageUrl={paymentQrImageUrl}
       />
     </div>
   )
@@ -258,8 +262,9 @@ function PrintableBill({
   paymentLabel,
   paymentMethod,
   paymentSettings,
+  paymentQrImageUrl,
 }) {
-  const shouldPrintPaymentQr = paymentMethod === 'qr' && paymentSettings?.qrImage
+  const shouldPrintPaymentQr = paymentMethod === 'qr' && paymentQrImageUrl
 
   return (
     <div className="print-bill">
@@ -326,7 +331,7 @@ function PrintableBill({
       {shouldPrintPaymentQr && (
         <div className="print-bill__qr">
           <p>{paymentSettings.qrName || 'QR thanh toán'}</p>
-          <img src={paymentSettings.qrImage} alt="QR thanh toán" />
+          <img src={paymentQrImageUrl} alt="QR thanh toán" />
           {paymentSettings.qrNote && <span>{paymentSettings.qrNote}</span>}
         </div>
       )}
