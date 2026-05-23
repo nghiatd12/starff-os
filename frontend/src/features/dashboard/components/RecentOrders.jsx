@@ -1,25 +1,15 @@
-import { useState, useEffect } from 'react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency } from '@/utils/format'
-import { api } from '@/lib/api'
 
-export default function RecentOrders() {
-  const [recentOrders, setRecentOrders] = useState([])
-  const [loading, setLoading] = useState(true)
+const STATUS_LABELS = {
+  open: 'Đang phục vụ',
+  preparing: 'Đang chuẩn bị',
+  ready: 'Sẵn sàng',
+  paid: 'Đã thanh toán',
+}
 
-  useEffect(() => {
-    api.get('/orders/active')
-      .then((data) => {
-        const orders = data.orders || []
-        // Show last 5 orders
-        setRecentOrders(orders.slice(0, 5))
-      })
-      .catch(() => {
-        setRecentOrders([])
-      })
-      .finally(() => setLoading(false))
-  }, [])
+export default function RecentOrders({ orders = [], loading = false }) {
 
   return (
     <Card>
@@ -37,7 +27,7 @@ export default function RecentOrders() {
         <div className="p-5 text-center">
           <p className="text-slate-400 text-sm">Đang tải...</p>
         </div>
-      ) : recentOrders.length === 0 ? (
+      ) : orders.length === 0 ? (
         <div className="p-5 text-center">
           <p className="text-slate-400 text-sm">Không có dữ liệu</p>
         </div>
@@ -54,9 +44,9 @@ export default function RecentOrders() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((o) => {
-                const itemCount = o.items?.length || 0
-                const total = (o.items || []).reduce((s, i) => s + (i.price * (i.qty || i.quantity || 1)), 0)
+              {orders.map((o) => {
+                const itemCount = o.quantity_count ?? o.item_count ?? 0
+                const total = o.total || 0
                 return (
                   <tr key={o.id} className="table-row-hover border-b border-slate-50 last:border-0">
                     <td className="px-5 py-4 text-sm font-semibold text-brand-600">#{o.id}</td>
@@ -65,10 +55,10 @@ export default function RecentOrders() {
                     <td className="px-5 py-4 text-sm font-bold text-slate-800">{formatCurrency(total)}</td>
                     <td className="px-5 py-4">
                       <Badge
-                        variant={o.status === 'completed' ? 'neutral' : 'success'}
+                        variant={o.status === 'paid' ? 'neutral' : 'success'}
                         dot
                       >
-                        {o.status === 'completed' ? 'Đã thanh toán' : 'Đang phục vụ'}
+                        {STATUS_LABELS[o.status] || o.status}
                       </Badge>
                     </td>
                   </tr>

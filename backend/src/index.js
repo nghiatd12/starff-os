@@ -14,6 +14,7 @@ import ordersRoutes from './routes/orders.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin.js'
 import staffRoutes from './routes/staff.js'
+import dashboardRoutes from './routes/dashboard.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -77,6 +78,7 @@ app.use('/api/orders', ordersRoutes)
 app.use('/api/public', publicRoutes) // Public routes — không cần auth (QR menu khách)
 app.use('/api/admin', adminRoutes)
 app.use('/api/staff', staffRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

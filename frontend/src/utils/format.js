@@ -2,7 +2,7 @@
  * Format số tiền VND: 280000 → "280.000đ"
  */
 export const formatCurrency = (amount) =>
-  amount.toLocaleString('vi-VN') + 'đ'
+  Number(amount || 0).toLocaleString('vi-VN') + 'đ'
 
 /**
  * Format rút gọn: 3200000 → "3.2tr" | 280000 → "280k"
