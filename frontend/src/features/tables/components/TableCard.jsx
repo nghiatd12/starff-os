@@ -1,4 +1,3 @@
-import { formatCurrency } from '@/utils/format'
 import { Armchair, UtensilsCrossed, Hourglass, CalendarCheck, Clock, Users } from '@/components/ui/Icon'
 
 const TABLE_STATUS_CONFIG = {
@@ -19,7 +18,7 @@ const TABLE_STATUS_CONFIG = {
     pulse: false,
   },
   waiting: {
-    label: 'Chờ món',
+    label: 'Chờ thanh toán',
     bg: 'bg-amber-50',
     border: 'border-amber-200',
     text: 'text-amber-700',
@@ -43,9 +42,17 @@ const STATUS_ICON = {
   reserved: CalendarCheck,
 }
 
+const formatElapsed = (minutes = 0) => {
+  if (minutes < 60) return `${minutes} phút`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins ? `${hours}h ${mins}p` : `${hours}h`
+}
+
 export default function TableCard({ table, isSelected, onClick }) {
-  const cfg = TABLE_STATUS_CONFIG[table.status]
-  const IconComp = STATUS_ICON[table.status]
+  const cfg = TABLE_STATUS_CONFIG[table.status] || TABLE_STATUS_CONFIG.empty
+  const IconComp = STATUS_ICON[table.status] || Armchair
+  const hasOrder = table.status !== 'empty'
 
   return (
     <button
@@ -54,27 +61,27 @@ export default function TableCard({ table, isSelected, onClick }) {
         ${isSelected ? 'ring-2 ring-emerald-500 ring-offset-2 shadow-card' : 'hover:-translate-y-0.5'}
         ${cfg.pulse ? 'pulse-live' : ''}`}
     >
-      {/* Icon — cố định góc trên trái */}
       <div className="w-8 h-8 rounded-xl bg-white/80 border border-slate-200/50 flex items-center justify-center flex-shrink-0">
         <IconComp size={16} className={cfg.text} />
       </div>
 
-      {/* Status dot — cố định góc trên phải */}
-      <div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
+      {hasOrder && (
+        <div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
+      )}
 
-      {/* Content */}
       <div className="mt-3 flex-1">
         <p className={`font-bold text-sm ${cfg.text}`}>{table.name}</p>
 
-        {table.status !== 'empty' ? (
+        {hasOrder ? (
           <div className="mt-1.5 space-y-0.5">
+            <p className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</p>
             <div className="flex items-center gap-1.5">
               <Users size={11} className="text-slate-400" />
-              <span className="text-[11px] text-slate-500">{table.guests} khách</span>
+              <span className="text-[11px] text-slate-500">{table.guests || 1} khách</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock size={11} className="text-slate-400" />
-              <span className="text-[11px] text-slate-500">{table.time}</span>
+              <span className="text-[11px] text-slate-500">{formatElapsed(table.elapsedMinutes)} từ lúc order</span>
             </div>
           </div>
         ) : (

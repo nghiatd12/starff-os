@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
 import { formatCurrency } from '@/utils/format'
 import { X, Plus, Users, Clock, UtensilsCrossed } from '@/components/ui/Icon'
 import Button from '@/components/ui/Button'
@@ -8,78 +6,44 @@ import Badge from '@/components/ui/Badge'
 const TABLE_STATUS_CONFIG = {
   empty: {
     label: 'Trống',
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
     text: 'text-slate-500',
-    dot: 'bg-slate-300',
-    pulse: false,
   },
   occupied: {
     label: 'Có khách',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
     text: 'text-emerald-700',
-    dot: 'bg-emerald-500',
-    pulse: false,
   },
   waiting: {
-    label: 'Chờ món',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
+    label: 'Chờ thanh toán',
     text: 'text-amber-700',
-    dot: 'bg-amber-500',
-    pulse: true,
   },
   reserved: {
     label: 'Đặt trước',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
     text: 'text-blue-700',
-    dot: 'bg-blue-500',
-    pulse: false,
   },
 }
 
-/**
- * TableSidePanel — chi tiết bàn được chọn (cố định)
- */
+const statusVariant = {
+  empty: 'neutral',
+  occupied: 'success',
+  waiting: 'warning',
+  reserved: 'info',
+}
+
+const formatElapsed = (minutes = 0) => {
+  if (minutes < 60) return `${minutes} phút`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins ? `${hours}h ${mins}p` : `${hours}h`
+}
+
 export default function TableSidePanel({ table, onClose, onOrder, onCashier }) {
-  const cfg = TABLE_STATUS_CONFIG[table.status]
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (table.status === 'empty') {
-      setItems([])
-      return
-    }
-
-    setLoading(true)
-    api.get('/orders/active')
-      .then((data) => {
-        const orders = data.orders || []
-        // Find order for this table
-        const tableOrder = orders.find((o) => o.table_id === table.id)
-        setItems(tableOrder?.items || [])
-      })
-      .catch(() => {
-        setItems([])
-      })
-      .finally(() => setLoading(false))
-  }, [table.id, table.status])
-
-  const total = items.reduce((s, i) => s + (i.price * (i.qty || i.quantity || 1)), 0)
-
-  const statusVariant = {
-    empty: 'neutral',
-    occupied: 'success',
-    waiting: 'warning',
-    reserved: 'info',
-  }
+  const cfg = TABLE_STATUS_CONFIG[table.status] || TABLE_STATUS_CONFIG.empty
+  const items = table.items || []
+  const total = items.reduce((sum, item) => sum + item.price * (item.qty || item.quantity || 1), 0)
+  const hasOrder = table.status !== 'empty'
 
   return (
     <div className="w-80 h-full bg-white rounded-3xl shadow-card border border-slate-100 flex flex-col overflow-hidden">
-      {/* Header */}
       <div className="p-5 border-b border-slate-100 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-lg text-slate-800">{table.name}</h3>
@@ -90,39 +54,36 @@ export default function TableSidePanel({ table, onClose, onOrder, onCashier }) {
             <X size={16} />
           </button>
         </div>
-        <Badge variant={statusVariant[table.status]} dot>{cfg.label}</Badge>
+        <Badge variant={statusVariant[table.status] || 'neutral'} dot={hasOrder}>{cfg.label}</Badge>
 
-        {table.status !== 'empty' && (
+        {hasOrder && (
           <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
               <Users size={12} className="text-slate-400" />
-              {table.guests} khách
+              {table.guests || 1} khách
             </span>
             <span className="flex items-center gap-1.5">
               <Clock size={12} className="text-slate-400" />
-              Từ {table.time}
+              {formatElapsed(table.elapsedMinutes)}
             </span>
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-slate-400 text-sm">Đang tải...</p>
-        </div>
-      ) : items.length > 0 ? (
+      {items.length > 0 ? (
         <>
-          {/* Order items — scrollable */}
           <div className="flex-1 p-5 overflow-y-auto min-h-0">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">
               Món đã gọi ({items.length})
             </p>
             <div className="space-y-3">
-              {items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+              {items.map((item, index) => (
+                <div key={`${item.id || item.name}-${index}`} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
                   <div>
                     <p className="text-sm font-medium text-slate-700">{item.name}</p>
-                    <p className="text-[11px] text-slate-400">x{item.qty || item.quantity || 1} · {formatCurrency(item.price)}/phần</p>
+                    <p className="text-[11px] text-slate-400">
+                      x{item.qty || item.quantity || 1} · {formatCurrency(item.price)}/phần
+                    </p>
                   </div>
                   <span className="text-sm font-bold text-slate-700">
                     {formatCurrency(item.price * (item.qty || item.quantity || 1))}
@@ -132,7 +93,6 @@ export default function TableSidePanel({ table, onClose, onOrder, onCashier }) {
             </div>
           </div>
 
-          {/* Footer — cố định */}
           <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm text-slate-500">Tổng cộng</span>

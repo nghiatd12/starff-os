@@ -1,68 +1,119 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus } from '@/components/ui/Icon'
 import { useTables } from '@/lib/useStore'
+import { api } from '@/lib/api'
 import TableCard from './components/TableCard'
 import TableSidePanel from './components/TableSidePanel'
 
 const TABLE_STATUS_CONFIG = {
   empty: {
     label: 'Trống',
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
-    text: 'text-slate-500',
     dot: 'bg-slate-300',
-    pulse: false,
   },
   occupied: {
     label: 'Có khách',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    text: 'text-emerald-700',
     dot: 'bg-emerald-500',
-    pulse: false,
   },
   waiting: {
-    label: 'Chờ món',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-700',
+    label: 'Chờ thanh toán',
     dot: 'bg-amber-500',
-    pulse: true,
   },
   reserved: {
     label: 'Đặt trước',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-700',
     dot: 'bg-blue-500',
-    pulse: false,
   },
 }
 
 const zones = [
-  { id: 'all',    name: 'Tất cả' },
+  { id: 'all', name: 'Tất cả' },
   { id: 'indoor', name: 'Trong nhà' },
   { id: 'outdoor', name: 'Ngoài trời' },
-  { id: 'vip',    name: 'Phòng VIP' },
+  { id: 'vip', name: 'Phòng VIP' },
 ]
 
 export default function TablesPage({ setActive }) {
   const { tables, loading } = useTables()
+  const [billingOrders, setBillingOrders] = useState([])
+  const [now, setNow] = useState(new Date())
   const [selectedTable, setSelectedTable] = useState(null)
   const [activeZone, setActiveZone] = useState('all')
 
-  const filteredTables = activeZone === 'all'
-    ? tables
-    : tables.filter((t) => t.zone === activeZone)
+  useEffect(() => {
+    let active = true
+    const loadBillingOrders = () => {
+      api.get('/orders/billing')
+        .then((data) => {
+          if (active) setBillingOrders(data.orders || [])
+        })
+        .catch(() => {
+          if (active) setBillingOrders([])
+        })
+    }
 
-  const counts = tables.reduce((acc, t) => {
-    acc[t.status] = (acc[t.status] || 0) + 1
+    loadBillingOrders()
+    const interval = setInterval(loadBillingOrders, 30000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const displayTables = useMemo(() => {
+    return tables.map((table) => {
+      const tableOrders = billingOrders.filter((order) => order.table_id === table.id)
+      if (tableOrders.length === 0) {
+        return {
+          ...table,
+          status: 'empty',
+          orders: [],
+          items: [],
+          guests: 0,
+          elapsedMinutes: 0,
+          firstOrderAt: null,
+        }
+      }
+
+      const firstOrder = tableOrders[0]
+      const firstOrderAt = firstOrder?.created_at ? new Date(firstOrder.created_at) : null
+      const elapsedMinutes = firstOrderAt
+        ? Math.max(0, Math.floor((now.getTime() - firstOrderAt.getTime()) / 60000))
+        : 0
+
+      return {
+        ...table,
+        status: tableOrders.some((order) => order.status === 'ready') ? 'waiting' : 'occupied',
+        orders: tableOrders,
+        items: tableOrders.flatMap((order) => order.items || []),
+        guests: tableOrders.reduce((sum, order) => sum + (Number(order.guest_count) || 0), 0),
+        elapsedMinutes,
+        firstOrderAt,
+      }
+    })
+  }, [billingOrders, now, tables])
+
+  useEffect(() => {
+    setSelectedTable((current) => {
+      if (!current) return current
+      return displayTables.find((table) => table.id === current.id) || current
+    })
+  }, [displayTables])
+
+  const filteredTables = activeZone === 'all'
+    ? displayTables
+    : displayTables.filter((table) => table.zone === activeZone)
+
+  const counts = displayTables.reduce((acc, table) => {
+    acc[table.status] = (acc[table.status] || 0) + 1
     return acc
   }, {})
 
-  // Compute zone table counts from actual data
-  const zoneCounts = tables.reduce((acc, t) => {
-    acc[t.zone] = (acc[t.zone] || 0) + 1
+  const zoneCounts = displayTables.reduce((acc, table) => {
+    acc[table.zone] = (acc[table.zone] || 0) + 1
     return acc
   }, {})
 
@@ -76,11 +127,12 @@ export default function TablesPage({ setActive }) {
 
   return (
     <div className="p-6 lg:p-8 fade-in h-full overflow-hidden flex flex-col">
-      {/* Header */}
       <div className="mb-5 flex items-end justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sơ đồ bàn</h1>
-          <p className="text-slate-400 text-sm mt-1">Quản lý {tables.length} bàn · {zones.length - 1} khu vực</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Quản lý {displayTables.length} bàn · {zones.length - 1} khu vực
+          </p>
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium text-white transition-all"
@@ -91,9 +143,7 @@ export default function TablesPage({ setActive }) {
         </button>
       </div>
 
-      {/* Zone tabs + Status legend */}
       <div className="flex items-center justify-between mb-5 flex-shrink-0">
-        {/* Zone filter */}
         <div className="flex gap-2">
           {zones.map((zone) => (
             <button
@@ -116,7 +166,6 @@ export default function TablesPage({ setActive }) {
           ))}
         </div>
 
-        {/* Status legend */}
         <div className="hidden lg:flex gap-3">
           {Object.entries(TABLE_STATUS_CONFIG).map(([key, cfg]) => (
             <div key={key} className="flex items-center gap-1.5">
@@ -128,9 +177,7 @@ export default function TablesPage({ setActive }) {
         </div>
       </div>
 
-      {/* Content area */}
       <div className="flex gap-6 flex-1 min-h-0">
-        {/* Grid — scrollable */}
         <div className="flex-1 overflow-y-auto pr-2">
           {filteredTables.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -150,7 +197,6 @@ export default function TablesPage({ setActive }) {
           )}
         </div>
 
-        {/* Side panel — fixed */}
         {selectedTable && (
           <div className="flex-shrink-0">
             <TableSidePanel
