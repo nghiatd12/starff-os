@@ -13,7 +13,10 @@ import { getUser } from '@/lib/auth'
  * Path: /menu/:slug/ban/:tableId
  */
 function getTableUrl(slug, tableId) {
-  const base = import.meta.env.VITE_APP_URL || window.location.origin
+  const configuredBase = import.meta.env.VITE_APP_URL
+  const host = window.location.hostname
+  const isVercelPreview = host.endsWith('.vercel.app') && host !== 'staff-os-eight.vercel.app'
+  const base = configuredBase || (isVercelPreview ? 'https://staff-os-eight.vercel.app' : window.location.origin)
   return `${base}/menu/${slug}/ban/${tableId}`
 }
 
