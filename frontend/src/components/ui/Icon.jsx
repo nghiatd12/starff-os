@@ -48,6 +48,7 @@ export {
   AlertCircle,
   Info,
   CircleDot,
+  MapPin,
 
   // Table statuses
   Armchair,

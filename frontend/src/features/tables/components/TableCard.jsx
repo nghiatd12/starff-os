@@ -1,4 +1,4 @@
-import { Armchair, UtensilsCrossed, Hourglass, CalendarCheck, Clock, Users } from '@/components/ui/Icon'
+import { Armchair, UtensilsCrossed, Hourglass, CalendarCheck, Clock, MapPin, Users } from '@/components/ui/Icon'
 
 const TABLE_STATUS_CONFIG = {
   empty: {
@@ -42,6 +42,12 @@ const STATUS_ICON = {
   reserved: CalendarCheck,
 }
 
+const ZONE_LABELS = {
+  indoor: 'Trong nhà',
+  outdoor: 'Ngoài trời',
+  vip: 'Phòng VIP',
+}
+
 const formatElapsed = (minutes = 0) => {
   if (minutes < 60) return `${minutes} phút`
   const hours = Math.floor(minutes / 60)
@@ -53,16 +59,23 @@ export default function TableCard({ table, isSelected, onClick }) {
   const cfg = TABLE_STATUS_CONFIG[table.status] || TABLE_STATUS_CONFIG.empty
   const IconComp = STATUS_ICON[table.status] || Armchair
   const hasOrder = table.status !== 'empty'
+  const zoneLabel = ZONE_LABELS[table.zone] || table.zone || 'Chưa có khu vực'
 
   return (
     <button
       onClick={onClick}
-      className={`${cfg.bg} border ${cfg.border} rounded-3xl p-4 text-left transition-all duration-200 hover:shadow-card relative h-[160px] flex flex-col
+      className={`${cfg.bg} border ${cfg.border} rounded-3xl p-4 text-left transition-all duration-200 hover:shadow-card relative h-[170px] flex flex-col
         ${isSelected ? 'ring-2 ring-emerald-500 ring-offset-2 shadow-card' : 'hover:-translate-y-0.5'}
         ${cfg.pulse ? 'pulse-live' : ''}`}
     >
-      <div className="w-8 h-8 rounded-xl bg-white/80 border border-slate-200/50 flex items-center justify-center flex-shrink-0">
-        <IconComp size={16} className={cfg.text} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="w-8 h-8 rounded-xl bg-white/80 border border-slate-200/50 flex items-center justify-center flex-shrink-0">
+          <IconComp size={16} className={cfg.text} />
+        </div>
+        <div className="flex items-center gap-1 rounded-xl bg-white/70 px-2 py-1 text-[10px] font-semibold text-slate-500">
+          <MapPin size={10} />
+          {zoneLabel}
+        </div>
       </div>
 
       {hasOrder && (
@@ -81,7 +94,7 @@ export default function TableCard({ table, isSelected, onClick }) {
             </div>
             <div className="flex items-center gap-1.5">
               <Clock size={11} className="text-slate-400" />
-              <span className="text-[11px] text-slate-500">{formatElapsed(table.elapsedMinutes)} từ lúc order</span>
+              <span className="text-[11px] text-slate-500">{formatElapsed(table.elapsedMinutes)}</span>
             </div>
           </div>
         ) : (
