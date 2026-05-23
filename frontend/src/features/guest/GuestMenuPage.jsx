@@ -339,51 +339,74 @@ function GuestActionBar({ onCallStaff, onRequestPayment, actionStatus }) {
   )
 }
 
-function SelectionHistory({ selectedHistory, orderHistory }) {
-  if (selectedHistory.length === 0 && orderHistory.length === 0) return null
+function OrderHistorySheet({ orderHistory, onClose }) {
+  const totalOrders = orderHistory.length
 
   return (
-    <div className="px-4 pt-4 space-y-3">
-      {selectedHistory.length > 0 && (
-        <section className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-slate-800">Món vừa chọn</h2>
-            <span className="text-[11px] text-emerald-600 font-semibold">{selectedHistory.length} món</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {selectedHistory.map((item) => (
-              <div key={`${item.id}-${item.at}`} className="shrink-0 rounded-2xl bg-slate-50 px-3 py-2 min-w-[132px]">
-                <p className="text-xs font-semibold text-slate-700 truncate">{item.name}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {formatPrice(item.price)} · {formatTime(item.at)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl max-h-[82vh] flex flex-col">
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-slate-200" />
+        </div>
 
-      {orderHistory.length > 0 && (
-        <section className="bg-emerald-50 rounded-3xl p-4 border border-emerald-100">
-          <h2 className="text-sm font-bold text-emerald-800 mb-2">Lịch sử order</h2>
-          <div className="space-y-2">
-            {orderHistory.slice(0, 2).map((order) => (
-              <div key={order.at} className="flex items-center justify-between rounded-2xl bg-white/80 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-700 truncate">
-                    {order.items.map((i) => `${i.qty}x ${i.name}`).join(', ')}
-                  </p>
-                  <p className="text-[11px] text-slate-400">{formatTime(order.at)}</p>
-                </div>
-                <span className="text-xs font-bold text-emerald-700 shrink-0 ml-3">
-                  {formatPrice(order.total)}
-                </span>
-              </div>
-            ))}
+        <div className="px-5 pb-4 flex items-center justify-between border-b border-slate-100">
+          <div>
+            <h3 className="font-bold text-slate-800 text-lg">Món đã gọi</h3>
+            <p className="text-xs text-slate-400 mt-0.5">{totalOrders} lượt order trên thiết bị này</p>
           </div>
-        </section>
-      )}
+          <button onClick={onClose} className="text-slate-400 text-sm">Đóng</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {orderHistory.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm font-medium text-slate-500">Chưa có món nào đã gọi</p>
+              <p className="text-xs text-slate-400 mt-1">Các order đã gửi từ thiết bị này sẽ hiện ở đây.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orderHistory.map((order, index) => (
+                <div key={order.at} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Order #{orderHistory.length - index}</p>
+                      <p className="text-[11px] text-slate-400">{formatTime(order.at)}</p>
+                    </div>
+                    <span className="text-sm font-black text-emerald-600">{formatPrice(order.total)}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {order.items.map((item) => (
+                      <div key={`${order.at}-${item.id}`} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                        <p className="text-xs font-semibold text-slate-700 min-w-0 truncate">
+                          {item.qty}x {item.name}
+                        </p>
+                        <span className="text-xs font-semibold text-slate-500 shrink-0">
+                          {formatPrice(item.price * item.qty)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
+  )
+}
+
+function HistoryButton({ orderCount, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="shrink-0 rounded-2xl px-4 py-3 bg-slate-50 border border-slate-100 text-slate-700 active:scale-[0.98] transition-transform"
+    >
+      <span className="text-sm font-bold">
+        🧾 Món đã gọi{orderCount > 0 ? ` (${orderCount})` : ''}
+      </span>
+    </button>
   )
 }
 
@@ -397,10 +420,10 @@ export default function GuestMenuPage({ slug, tableId }) {
   const [activeCategory, setActiveCategory] = useState('')
   const [cart, setCart] = useState([]) // [{ id, name, price, qty, note, category }]
   const [showCart, setShowCart] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [orderTotal, setOrderTotal] = useState(0)
   const [actionStatus, setActionStatus] = useState('')
-  const [selectedHistory, setSelectedHistory] = useState([])
   const [orderHistory, setOrderHistory] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`staffos_guest_orders_${slug}_${tableId}`) || '[]')
@@ -430,10 +453,6 @@ export default function GuestMenuPage({ slug, tableId }) {
       if (existing) return prev.map((i) => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)
       return [...prev, { id: item.id, name: item.name, price: item.price, qty: 1, note: '', category: item.category }]
     })
-    setSelectedHistory((prev) => [
-      { id: item.id, name: item.name, price: item.price, at: new Date().toISOString() },
-      ...prev.filter((i) => i.id !== item.id),
-    ].slice(0, 8))
   }, [])
 
   const removeFromCart = useCallback((item) => {
@@ -587,6 +606,9 @@ export default function GuestMenuPage({ slug, tableId }) {
           onRequestPayment={handleRequestPayment}
           actionStatus={actionStatus}
         />
+        <div className="mt-3">
+          <HistoryButton orderCount={orderHistory.length} onClick={() => setShowHistory(true)} />
+        </div>
       </div>
 
       {/* Category tabs */}
@@ -597,8 +619,6 @@ export default function GuestMenuPage({ slug, tableId }) {
           onSelect={setActiveCategory}
         />
       </div>
-
-      <SelectionHistory selectedHistory={selectedHistory} orderHistory={orderHistory} />
 
       {/* Menu items */}
       <div className="px-5 pt-4 space-y-4">
@@ -648,6 +668,13 @@ export default function GuestMenuPage({ slug, tableId }) {
           onSubmit={handleSubmit}
           submitting={submitting}
           onClose={() => setShowCart(false)}
+        />
+      )}
+
+      {showHistory && (
+        <OrderHistorySheet
+          orderHistory={orderHistory}
+          onClose={() => setShowHistory(false)}
         />
       )}
     </div>
