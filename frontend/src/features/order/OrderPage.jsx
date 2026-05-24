@@ -7,9 +7,9 @@ import OrderSummary from './components/OrderSummary'
 import Select from '@/components/ui/Select'
 
 export default function OrderPage() {
-  const { menu: menuData, categories, loading: menuLoading } = useMenu()
+  const { menu: menuData, categories, refresh: refreshMenu, loading: menuLoading } = useMenu()
   const { tables, refresh: refreshTables, loading: tablesLoading } = useTables()
-  const loading = menuLoading && tablesLoading
+  const loading = menuLoading || tablesLoading
 
   const [activeCategory, setActiveCategory] = useState('')
   const [selectedTable, setSelectedTable] = useState('')
@@ -25,8 +25,9 @@ export default function OrderPage() {
   }, [categories, activeCategory])
 
   useEffect(() => {
-    if (tables.length === 0) refreshTables()
-  }, [tables.length, refreshTables])
+    refreshTables()
+    refreshMenu()
+  }, [refreshTables, refreshMenu])
 
   useEffect(() => {
     if (tables.length > 0 && !selectedTable) {
