@@ -322,8 +322,13 @@ function PrintableBill({
   return (
     <div className="print-bill">
       <div className="print-bill__header">
-        <h1>StaffOS</h1>
-        <p>Hóa đơn thanh toán</p>
+        <h1>Quán Cậu Út</h1>
+        <p>123 Nguyễn Huệ, Q.7, TP.HCM</p>
+        <p>ĐT: 0901 234 567</p>
+      </div>
+
+      <div className="print-bill__title">
+        <span>HÓA ĐƠN THANH TOÁN</span>
       </div>
 
       <div className="print-bill__meta">
@@ -390,7 +395,8 @@ function PrintableBill({
       )}
 
       <div className="print-bill__footer">
-        <p>Cảm ơn quý khách. Hẹn gặp lại!</p>
+        <strong>Cảm ơn quý khách!</strong>
+        <p>Hẹn gặp lại tại Quán Cậu Út.</p>
       </div>
     </div>
   )

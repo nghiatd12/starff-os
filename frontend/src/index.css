@@ -89,6 +89,11 @@ body {
 }
 
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -104,35 +109,55 @@ body {
     inset: 0;
     width: 80mm;
     margin: 0 auto;
-    padding: 12px;
+    padding: 14px 12px;
     color: #111827;
     background: #ffffff;
     font-family: 'Inter', system-ui, sans-serif;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   .print-bill__header {
     text-align: center;
-    border-bottom: 1px dashed #94a3b8;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
+    border-bottom: 1px solid #111827;
+    padding-bottom: 9px;
+    margin-bottom: 9px;
   }
 
   .print-bill__header h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0;
   }
 
   .print-bill__header p,
   .print-bill__footer p {
-    margin: 4px 0 0;
+    margin: 3px 0 0;
+  }
+
+  .print-bill__title {
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .print-bill__title span {
+    display: inline-block;
+    border: 1px solid #111827;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 900;
   }
 
   .print-bill__meta {
     display: grid;
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: 5px;
+    margin-bottom: 12px;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
   }
 
   .print-bill__meta div,
@@ -145,15 +170,24 @@ body {
   .print-bill__table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .print-bill__table th,
   .print-bill__table td {
-    padding: 6px 0;
+    padding: 6px 2px;
     border-bottom: 1px solid #e5e7eb;
     text-align: right;
     vertical-align: top;
+  }
+
+  .print-bill__table th {
+    color: #111827;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-top: 1px solid #111827;
+    border-bottom: 1px solid #111827;
   }
 
   .print-bill__table th:first-child,
@@ -163,10 +197,17 @@ body {
   }
 
   .print-bill__grand-total {
-    border-top: 1px dashed #94a3b8;
-    margin-top: 6px;
+    border-top: 1px solid #111827;
+    margin-top: 7px;
     padding-top: 8px;
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 900;
+  }
+
+  .print-bill__totals {
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
   }
 
   .print-bill__qr {
@@ -198,7 +239,12 @@ body {
   .print-bill__footer {
     margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px dashed #94a3b8;
+    border-top: 1px solid #111827;
     text-align: center;
+  }
+
+  .print-bill__footer strong {
+    display: block;
+    font-size: 12px;
   }
 }

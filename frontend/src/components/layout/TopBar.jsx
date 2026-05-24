@@ -1,24 +1,17 @@
 import { NAV_ITEMS } from '@/constants/navigation'
-import { Search, Bell, ChevronRight } from '@/components/ui/Icon'
+import { Search, Bell } from '@/components/ui/Icon'
 
 export default function TopBar({ activeScreen, user }) {
-  const current = NAV_ITEMS.find((n) => n.id === activeScreen)
+  const current = NAV_ITEMS.find((item) => item.id === activeScreen)
 
   return (
-    <header className="glass border-b border-slate-100 px-6 py-3 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
-      {/* Left — Breadcrumb & Page title */}
+    <header className="glass border-b border-slate-100 px-6 py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-0.5">
-          <span>{user?.store || 'StaffOS'}</span>
-          <ChevronRight size={12} />
-          <span className="text-slate-600">{current?.label ?? 'Dashboard'}</span>
-        </div>
-        <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+        <h1 className="text-xl font-bold text-slate-800 tracking-tight">
           {current?.label ?? 'Dashboard'}
         </h1>
       </div>
 
-      {/* Center — Global Search */}
       <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
         <div className="relative w-full">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -30,7 +23,6 @@ export default function TopBar({ activeScreen, user }) {
         </div>
       </div>
 
-      {/* Right — Actions */}
       <div className="flex items-center gap-2">
         <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl text-xs font-medium">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -44,7 +36,6 @@ export default function TopBar({ activeScreen, user }) {
           </span>
         </button>
 
-        {/* User info */}
         <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-100">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold text-slate-700">{user?.name || 'Người dùng'}</p>
