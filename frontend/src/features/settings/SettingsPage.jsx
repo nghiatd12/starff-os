@@ -3,7 +3,7 @@ import {
   Settings, Table2, Printer, Bell, Shield, Plus, Trash2, Pencil, QrCode, Upload, X, Save
 } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
-import { getPaymentSettings, savePaymentSettings } from '@/lib/settings'
+import { getPaymentSettings, getPrintSettings, savePaymentSettings, savePrintSettings } from '@/lib/settings'
 import { NAV_ITEMS } from '@/constants/navigation'
 import { ROLE_LABELS, SCREEN_PERMISSIONS } from '@/lib/permissions'
 import { api } from '@/lib/api'
@@ -63,6 +63,8 @@ export default function SettingsPage({ user, onUserUpdate }) {
   const [restaurantError, setRestaurantError] = useState('')
   const [paymentSettings, setPaymentSettings] = useState(getPaymentSettings)
   const [paymentSaved, setPaymentSaved] = useState(false)
+  const [printSettings, setPrintSettings] = useState(getPrintSettings)
+  const [printSaved, setPrintSaved] = useState(false)
   const [permissions, setPermissions] = useState(null)
   const [permissionsLoading, setPermissionsLoading] = useState(false)
   const [permissionSaving, setPermissionSaving] = useState('')
@@ -166,6 +168,24 @@ export default function SettingsPage({ user, onUserUpdate }) {
     const savedSettings = savePaymentSettings(paymentSettings)
     setPaymentSettings(savedSettings)
     setPaymentSaved(true)
+  }
+
+  const updatePrintSettings = (nextFields) => {
+    setPrintSaved(false)
+    setPrintSettings((current) => ({ ...current, ...nextFields }))
+  }
+
+  const handleSavePrintSettings = () => {
+    const savedSettings = savePrintSettings(printSettings)
+    setPrintSettings(savedSettings)
+    setPrintSaved(true)
+  }
+
+  const handleTestPrint = () => {
+    const savedSettings = savePrintSettings(printSettings)
+    setPrintSettings(savedSettings)
+    setPrintSaved(true)
+    window.print()
   }
 
   const handleTogglePermission = async (role, screen) => {
@@ -574,6 +594,31 @@ export default function SettingsPage({ user, onUserUpdate }) {
                   )}
                 </div>
               </Card>
+
+              <div className={`print-bill ${printSettings.paperSize === '58mm' ? 'print-bill--58' : ''}`}>
+                <div className="print-bill__header">
+                  <h1>Test in</h1>
+                  <p>{restaurantInfo.name || 'Quán Cậu Út'}</p>
+                  {printSettings.printerName && <p>{printSettings.printerName}</p>}
+                </div>
+                <div className="print-bill__title">
+                  <span>KIỂM TRA MÁY IN</span>
+                </div>
+                <div className="print-bill__meta">
+                  <div>
+                    <span>Khổ giấy</span>
+                    <strong>{printSettings.paperSize}</strong>
+                  </div>
+                  <div>
+                    <span>Chế độ</span>
+                    <strong>{printSettings.directKiosk ? 'Kiosk' : 'Thường'}</strong>
+                  </div>
+                </div>
+                <div className="print-bill__footer">
+                  <strong>StaffOS</strong>
+                  <p>Phiếu test in.</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -641,7 +686,129 @@ export default function SettingsPage({ user, onUserUpdate }) {
             </Card>
           )}
 
-          {activeTab !== 'zones' && activeTab !== 'general' && activeTab !== 'payment-qr' && activeTab !== 'roles' && (
+          {activeTab === 'printer' && (
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <Card className="p-6">
+                <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800">Cài đặt in bill</h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Dùng cho máy thu ngân chạy Chrome kiosk để in thẳng ra máy in mặc định.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updatePrintSettings({ directKiosk: !printSettings.directKiosk })}
+                    className={`relative h-8 w-14 rounded-full transition-colors ${
+                      printSettings.directKiosk ? 'bg-emerald-500' : 'bg-slate-200'
+                    }`}
+                    aria-label="Bật in trực tiếp kiosk"
+                  >
+                    <span
+                      className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                        printSettings.directKiosk ? 'translate-x-7' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-3xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Web không đọc được danh sách/trạng thái máy in. Để không hiện hộp thoại Print, máy thu ngân phải mở Chrome bằng
+                    <span className="font-bold"> --kiosk-printing</span> và đặt đúng máy in bill làm mặc định.
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">Tên máy in mặc định</label>
+                    <input
+                      type="text"
+                      value={printSettings.printerName}
+                      onChange={(event) => updatePrintSettings({ printerName: event.target.value })}
+                      placeholder="VD: Xprinter XP-80C"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                    <p className="mt-1.5 text-xs text-slate-400">Dùng để nhân viên đối chiếu, trình duyệt vẫn in ra máy in mặc định của Windows.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Khổ giấy</label>
+                      <select
+                        value={printSettings.paperSize}
+                        onChange={(event) => updatePrintSettings({ paperSize: event.target.value })}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      >
+                        <option value="80mm">80mm</option>
+                        <option value="58mm">58mm</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Số bản</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={printSettings.copies}
+                        onChange={(event) => updatePrintSettings({ copies: event.target.value })}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleSavePrintSettings}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+                    >
+                      <Save size={16} />
+                      Lưu cài đặt in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTestPrint}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                    >
+                      <Printer size={16} />
+                      Test in
+                    </button>
+                  </div>
+                  {printSaved && <p className="text-sm font-semibold text-emerald-600">Đã lưu cài đặt in.</p>}
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="rounded-[28px] border border-slate-100 bg-slate-50 p-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                    <Printer size={24} />
+                  </div>
+                  <h3 className="mt-4 font-bold text-slate-800">
+                    {printSettings.directKiosk ? 'In trực tiếp đang bật' : 'Chưa bật in trực tiếp'}
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {printSettings.directKiosk
+                      ? 'Khi bấm thanh toán, Chrome kiosk sẽ in ngay ra máy in mặc định.'
+                      : 'Khi thanh toán, hệ thống sẽ báo cần bật kiosk trước khi in bill.'}
+                  </p>
+                  <div className="mt-5 space-y-2 rounded-2xl bg-white p-4 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400">Máy in</span>
+                      <strong className="text-right text-slate-700">{printSettings.printerName || 'Máy in mặc định'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Khổ giấy</span>
+                      <strong className="text-slate-700">{printSettings.paperSize}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Số bản</span>
+                      <strong className="text-slate-700">{printSettings.copies}</strong>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {activeTab !== 'zones' && activeTab !== 'general' && activeTab !== 'payment-qr' && activeTab !== 'roles' && activeTab !== 'printer' && (
             <Card className="p-8 text-center">
               <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
                 <Settings size={28} className="text-slate-300" />

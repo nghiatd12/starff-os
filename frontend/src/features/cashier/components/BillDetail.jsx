@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { getPaymentQrImageUrl, getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
+import {
+  getPaymentQrImageUrl,
+  getPaymentSettings,
+  getPrintSettings,
+  subscribePaymentSettings,
+  subscribePrintSettings,
+} from '@/lib/settings'
 import { formatCurrency } from '@/utils/format'
 import { getTenantPrintInfo } from '@/utils/tenant'
 import { Printer, Banknote, QrCode, Check } from '@/components/ui/Icon'
@@ -17,8 +23,10 @@ export default function BillDetail({ table, orders, user, onPaid }) {
   const [paying, setPaying] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
   const [paymentSettings, setPaymentSettings] = useState(getPaymentSettings)
+  const [printSettings, setPrintSettings] = useState(getPrintSettings)
 
   useEffect(() => subscribePaymentSettings(setPaymentSettings), [])
+  useEffect(() => subscribePrintSettings(setPrintSettings), [])
 
   const tableOrders = orders.filter((order) => order.table_id === table.id)
   const allItems = tableOrders.flatMap((order) => order.items || [])
@@ -52,8 +60,13 @@ export default function BillDetail({ table, orders, user, onPaid }) {
     window.print()
   }
 
-  const printBillAndWait = () =>
-    new Promise((resolve) => {
+  const printBillAndWait = () => {
+    if (!printSettings.directKiosk) {
+      throw new Error('Chưa bật in trực tiếp kiosk. Vào Cài đặt > Cài đặt in để bật, và mở Chrome bằng --kiosk-printing.')
+    }
+
+    const copies = Math.max(1, Number(printSettings.copies || 1))
+    return Array.from({ length: copies }).reduce((chain) => chain.then(() => new Promise((resolve) => {
       let done = false
       const finish = () => {
         if (done) return
@@ -67,7 +80,8 @@ export default function BillDetail({ table, orders, user, onPaid }) {
         window.print()
         setTimeout(finish, 1000)
       })
-    })
+    })), Promise.resolve())
+  }
 
   const handlePay = async () => {
     if (tableOrders.length === 0) return
@@ -254,6 +268,7 @@ export default function BillDetail({ table, orders, user, onPaid }) {
         paymentSettings={paymentSettings}
         paymentQrImageUrl={paymentQrImageUrl}
         tenantInfo={tenantInfo}
+        printSettings={printSettings}
       />
 
       {showQrModal && payMethod === 'qr' && (
@@ -320,11 +335,12 @@ function PrintableBill({
   paymentSettings,
   paymentQrImageUrl,
   tenantInfo,
+  printSettings,
 }) {
   const shouldPrintPaymentQr = paymentMethod === 'qr' && paymentQrImageUrl
 
   return (
-    <div className="print-bill">
+    <div className={`print-bill ${printSettings?.paperSize === '58mm' ? 'print-bill--58' : ''}`}>
       <div className="print-bill__header">
         <h1>{tenantInfo.name}</h1>
         {tenantInfo.address && <p>{tenantInfo.address}</p>}

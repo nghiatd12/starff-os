@@ -117,6 +117,16 @@ body {
     line-height: 1.35;
   }
 
+  .print-bill.print-bill--58 {
+    width: 58mm;
+    padding: 10px 8px;
+    font-size: 10px;
+  }
+
+  .print-bill.print-bill--58 .print-bill__header h1 {
+    font-size: 18px;
+  }
+
   .print-bill__header {
     text-align: center;
     border-bottom: 1px solid #111827;

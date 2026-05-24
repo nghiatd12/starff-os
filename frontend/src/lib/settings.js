@@ -1,4 +1,5 @@
 const PAYMENT_SETTINGS_KEY = 'staffos_payment_settings'
+const PRINT_SETTINGS_KEY = 'staffos_print_settings'
 
 const DEFAULT_PAYMENT_SETTINGS = {
   qrMode: 'upload',
@@ -55,4 +56,47 @@ export function getPaymentQrImageUrl(settings, { amount, billCode } = {}) {
 
   const template = mergedSettings.qrTemplate || 'compact2'
   return `https://img.vietqr.io/image/${encodeURIComponent(mergedSettings.bankCode)}-${encodeURIComponent(mergedSettings.accountNumber)}-${template}.png?${params.toString()}`
+}
+
+const DEFAULT_PRINT_SETTINGS = {
+  directKiosk: false,
+  printerName: '',
+  paperSize: '80mm',
+  copies: 1,
+}
+
+export function getPrintSettings() {
+  try {
+    const raw = localStorage.getItem(PRINT_SETTINGS_KEY)
+    if (!raw) return DEFAULT_PRINT_SETTINGS
+    return { ...DEFAULT_PRINT_SETTINGS, ...JSON.parse(raw) }
+  } catch {
+    return DEFAULT_PRINT_SETTINGS
+  }
+}
+
+export function savePrintSettings(settings) {
+  const nextSettings = {
+    ...DEFAULT_PRINT_SETTINGS,
+    ...settings,
+    copies: Math.max(1, Number(settings.copies || DEFAULT_PRINT_SETTINGS.copies)),
+  }
+  localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(nextSettings))
+  window.dispatchEvent(new CustomEvent('staffos-print-settings-change', { detail: nextSettings }))
+  return nextSettings
+}
+
+export function subscribePrintSettings(callback) {
+  const handleCustomChange = (event) => callback(event.detail || getPrintSettings())
+  const handleStorage = (event) => {
+    if (event.key === PRINT_SETTINGS_KEY) callback(getPrintSettings())
+  }
+
+  window.addEventListener('staffos-print-settings-change', handleCustomChange)
+  window.addEventListener('storage', handleStorage)
+
+  return () => {
+    window.removeEventListener('staffos-print-settings-change', handleCustomChange)
+    window.removeEventListener('storage', handleStorage)
+  }
 }
