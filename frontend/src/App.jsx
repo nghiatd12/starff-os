@@ -105,31 +105,43 @@ export default function App() {
     })
   }
 
-  // Check token on mount + prefetch data
+  // Check token on mount. Use cached user first so backend cold starts do not block the shell UI.
   useEffect(() => {
     const token = getToken()
     const refreshToken = getRefreshToken()
+    const cachedUser = getUser()
     if (!token && !refreshToken) {
       setCurrentView('login')
       return
     }
 
-    // Validate token + prefetch data song song
-    Promise.all([
-      api.get('/auth/me'),
-      prefetchAll(),
-    ])
-      .then(([data]) => {
+    const startApp = (userData) => {
+      setUser(userData)
+      setCurrentView('app')
+      const socket = connectSocket(userData.role)
+      bindSocketToStore(socket)
+      bindGlobalNotifications(socket)
+    }
+
+    if (cachedUser) {
+      startApp(cachedUser)
+      prefetchAll().catch(() => {})
+    }
+
+    api.get('/auth/me')
+      .then((data) => {
         const userData = data.user
         saveUser(userData)
         setUser(userData)
-        setCurrentView('app')
-        const socket = connectSocket(userData.role)
-        bindSocketToStore(socket)
-        bindGlobalNotifications(socket)
+        if (!cachedUser) {
+          startApp(userData)
+          prefetchAll().catch(() => {})
+        }
       })
       .catch(() => {
         clearAuth()
+        clearStore()
+        disconnectSocket()
         setCurrentView('login')
       })
   }, [])
