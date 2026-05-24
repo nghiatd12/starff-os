@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/utils/format'
-import { Plus, Printer, Save, Trash2 } from '@/components/ui/Icon'
+import { Banknote, Printer, QrCode, Save, Search, Trash2 } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
+import { useMenu } from '@/lib/useStore'
 
 const PAYMENT_LABELS = {
   cash: 'Tiền mặt',
@@ -39,9 +40,11 @@ function formatDate(value) {
 }
 
 export default function CashierHistory() {
+  const { menu, refresh: refreshMenu } = useMenu()
   const [orders, setOrders] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [draftItems, setDraftItems] = useState([])
+  const [itemSearch, setItemSearch] = useState('')
   const [discount, setDiscount] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [loading, setLoading] = useState(true)
@@ -52,6 +55,15 @@ export default function CashierHistory() {
     () => orders.find((order) => order.id === selectedId) || null,
     [orders, selectedId]
   )
+
+  const menuItems = useMemo(() => Object.values(menu).flat(), [menu])
+  const searchResults = useMemo(() => {
+    const keyword = itemSearch.trim().toLowerCase()
+    if (!keyword) return []
+    return menuItems
+      .filter((item) => item.name?.toLowerCase().includes(keyword))
+      .slice(0, 8)
+  }, [itemSearch, menuItems])
 
   const subtotal = draftItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0)
   const discountAmount = Math.round(subtotal * (Number(discount || 0) / 100))
@@ -77,6 +89,7 @@ export default function CashierHistory() {
 
   useEffect(() => {
     loadHistory()
+    refreshMenu()
   }, [])
 
   useEffect(() => {
@@ -102,8 +115,17 @@ export default function CashierHistory() {
     setDraftItems((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
-  const addItem = () => {
-    setDraftItems((current) => [...current, { id: null, name: '', price: 0, quantity: 1 }])
+  const addMenuItem = (menuItem) => {
+    setDraftItems((current) => {
+      const existingIndex = current.findIndex((item) => item.name === menuItem.name && Number(item.price) === Number(menuItem.price))
+      if (existingIndex >= 0) {
+        return current.map((item, index) =>
+          index === existingIndex ? { ...item, quantity: Number(item.quantity || 1) + 1 } : item
+        )
+      }
+      return [...current, { id: null, name: menuItem.name, price: Number(menuItem.price || 0), quantity: 1 }]
+    })
+    setItemSearch('')
   }
 
   const saveBill = async () => {
@@ -182,20 +204,43 @@ export default function CashierHistory() {
         {selectedOrder && (
           <div className="grid h-full min-h-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <Card className="flex min-h-0 flex-col overflow-hidden">
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+              <div className="border-b border-slate-100 p-5">
                 <div>
                   <h3 className="text-base font-bold text-slate-800">Hóa đơn #{selectedOrder.id}</h3>
                   <p className="mt-1 text-xs text-slate-400">
                     {selectedOrder.table_name || `Bàn #${selectedOrder.table_id}`} · {formatDate(selectedOrder.closed_at)}
                   </p>
                 </div>
-                <button
-                  onClick={addItem}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
-                >
-                  <Plus size={14} />
-                  Thêm món
-                </button>
+
+                <div className="relative mt-4 max-w-md">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={itemSearch}
+                    onChange={(event) => setItemSearch(event.target.value)}
+                    placeholder="Tìm món để thêm vào bill..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-medium text-slate-700 focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
+                  />
+                  {searchResults.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-slate-100 bg-white p-1.5 shadow-elevated">
+                      {searchResults.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => addMenuItem(item)}
+                          className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-emerald-50"
+                        >
+                          <span className="min-w-0 truncate font-semibold text-slate-700">{item.name}</span>
+                          <span className="shrink-0 text-xs font-bold text-emerald-600">{formatCurrency(item.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {itemSearch.trim() && searchResults.length === 0 && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-400 shadow-elevated">
+                      Không tìm thấy món trong menu
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto">
@@ -282,14 +327,30 @@ export default function CashierHistory() {
 
                 <div>
                   <label className="mb-2 block text-xs font-semibold text-slate-500">Phương thức</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(event) => setPaymentMethod(event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700"
-                  >
-                    <option value="cash">Tiền mặt</option>
-                    <option value="qr">QR</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'cash', label: 'Tiền mặt', Icon: Banknote },
+                      { id: 'qr', label: 'QR', Icon: QrCode },
+                    ].map((method) => {
+                      const IconComp = method.Icon
+                      const active = paymentMethod === method.id
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(method.id)}
+                          className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-bold transition-colors ${
+                            active
+                              ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <IconComp size={16} />
+                          {method.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {notice && (
