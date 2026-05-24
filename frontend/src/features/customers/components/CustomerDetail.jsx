@@ -1,17 +1,16 @@
 import { formatCurrency } from '@/utils/format'
-import { X, Heart, CalendarDays, Star, Users, Gift } from '@/components/ui/Icon'
-import Avatar from '@/components/ui/Avatar'
+import { X, Heart, CalendarDays, Star, Users } from '@/components/ui/Icon'
 
 const TIER_CONFIG = {
-  'Bạch Kim': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300', emoji: '💎', discount: '10%' },
-  'Vàng':     { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300', emoji: '🥇', discount: '5%' },
-  'Bạc':      { bg: 'bg-gray-100',   text: 'text-gray-600',   border: 'border-gray-300',   emoji: '🥈', discount: '3%' },
-  'Đồng':     { bg: 'bg-amber-100',  text: 'text-amber-700',  border: 'border-amber-300',  emoji: '🥉', discount: '0%' },
+  'Bạch Kim': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-100', discount: '10%' },
+  'Vàng':     { bg: 'bg-amber-50',  text: 'text-amber-700',  border: 'border-amber-100',  discount: '5%' },
+  'Bạc':      { bg: 'bg-slate-50',  text: 'text-slate-600',  border: 'border-slate-200',  discount: '3%' },
+  'Đồng':     { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100', discount: '0%' },
 }
 
 export default function CustomerDetail({ customer, onClose }) {
-  const tier = TIER_CONFIG[customer.tier]
-  const initial = customer.name.split(' ').pop()[0]
+  const tier = TIER_CONFIG[customer.tier] || TIER_CONFIG['Đồng']
+  const initial = customer.name.split(' ').pop()?.[0] || 'K'
 
   return (
     <div className="w-80 bg-white border-l border-slate-100 flex flex-col">
@@ -31,7 +30,7 @@ export default function CustomerDetail({ customer, onClose }) {
           <h4 className="font-bold text-slate-800 mt-3 text-base">{customer.name}</h4>
           <p className="text-slate-400 text-sm">{customer.phone}</p>
           <span className={`mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border ${tier.bg} ${tier.text} ${tier.border}`}>
-            {tier.emoji} {customer.tier} · Giảm {tier.discount}
+            {customer.tier} · Giảm {tier.discount}
           </span>
         </div>
 
@@ -85,21 +84,11 @@ export default function CustomerDetail({ customer, onClose }) {
             </div>
             <div className="flex-1">
               <p className="text-[11px] text-slate-400">Giới thiệu bạn</p>
-              <p className="text-sm font-semibold text-slate-700">{customer.referrals} người · +{customer.referrals * 100} điểm</p>
+              <p className="text-sm font-semibold text-slate-700">{customer.referrals || 0} người</p>
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="space-y-2">
-          <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium text-white" style={{ backgroundColor: '#10b981' }}>
-            <Gift size={16} />
-            Tặng ưu đãi
-          </button>
-          <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 transition-colors">
-            Xem lịch sử đơn hàng
-          </button>
-        </div>
       </div>
     </div>
   )

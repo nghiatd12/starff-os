@@ -15,6 +15,7 @@ export default function OrderPage() {
   const [selectedTable, setSelectedTable] = useState('')
   const [orderItems, setOrderItems] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [notice, setNotice] = useState(null)
 
   // Set defaults once data is loaded
   useEffect(() => {
@@ -57,11 +58,12 @@ export default function OrderPage() {
 
     const table = tables.find((t) => t.name === selectedTable)
     if (!table) {
-      alert('Vui lòng chọn bàn')
+      setNotice({ tone: 'error', text: 'Vui lòng chọn bàn trước khi gửi món.' })
       return
     }
 
     setSubmitting(true)
+    setNotice(null)
     try {
       await api.post('/orders', {
         tableId: table.id,
@@ -74,12 +76,12 @@ export default function OrderPage() {
           note: item.note || '',
         })),
       })
-      alert(`Đã gửi ${orderItems.length} món xuống bếp cho ${selectedTable}!`)
+      setNotice({ tone: 'success', text: `Đã gửi ${orderItems.length} món xuống bếp cho ${selectedTable}.` })
       setOrderItems([])
       // Refresh orders store cho KDS
       fetchOrders()
     } catch (err) {
-      alert(`Lỗi: ${err.message}`)
+      setNotice({ tone: 'error', text: err.message || 'Không gửi được món.' })
     } finally {
       setSubmitting(false)
     }
@@ -102,6 +104,15 @@ export default function OrderPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs text-slate-400">Chọn món và gửi xuống bếp</p>
+              {notice && (
+                <p className={`mt-2 inline-flex rounded-xl px-3 py-1.5 text-xs font-semibold ${
+                  notice.tone === 'success'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-red-50 text-red-600'
+                }`}>
+                  {notice.text}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">Bàn:</span>
