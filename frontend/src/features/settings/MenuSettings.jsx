@@ -17,6 +17,7 @@ const MENU_TYPES = [
 
 const EMPTY_ITEM = { name: '', category: '', price: '', description: '', imageUrl: '', available: true }
 const ITEMS_PER_PAGE = 10
+const MENU_IMAGE_MAX_SIZE = 900
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
@@ -85,6 +86,39 @@ async function uploadMenuImage(file) {
   const data = await res.json()
   if (!res.ok) throw new Error(data.error?.message || 'Upload ảnh thất bại.')
   return data.secure_url
+}
+
+async function uploadMenuImageWithFallback(file) {
+  if (!file) return ''
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) return resizeMenuImage(file)
+  try {
+    return await uploadMenuImage(file)
+  } catch (err) {
+    console.warn('[MenuSettings] Cloudinary upload failed, storing optimized local image instead:', err)
+    return resizeMenuImage(file)
+  }
+}
+
+function resizeMenuImage(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      const scale = Math.min(1, MENU_IMAGE_MAX_SIZE / Math.max(image.width, image.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(image.width * scale))
+      canvas.height = Math.max(1, Math.round(image.height * scale))
+      const context = canvas.getContext('2d')
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(objectUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.82))
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Khong the doc anh mon.'))
+    }
+    image.src = objectUrl
+  })
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -375,8 +409,8 @@ export default function MenuSettings() {
     if (!newItem.category) errors.category = 'Chọn danh mục cho món.'
     if (!newItem.price) errors.price = 'Nhập giá món.'
     else if (!Number.isFinite(price) || price <= 0) errors.price = 'Giá phải lớn hơn 0.'
-    if (newItemImage && (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET)) {
-      errors.image = 'Chưa cấu hình Cloudinary. Bạn có thể dán URL ảnh hoặc cấu hình upload cloud.'
+    if (newItemImage && !newItemImage.type.startsWith('image/')) {
+      errors.image = 'File ảnh không hợp lệ.'
     }
 
     setNewItemErrors(errors)
@@ -384,7 +418,7 @@ export default function MenuSettings() {
 
     setSavingItem(true)
     try {
-      const imageUrl = newItemImage ? await uploadMenuImage(newItemImage) : newItem.imageUrl
+      const imageUrl = newItemImage ? await uploadMenuImageWithFallback(newItemImage) : newItem.imageUrl
       await api.post(`/menu/sets/${selectedSetId}/items`, { ...newItem, imageUrl, price })
       setNewItem(EMPTY_ITEM)
       setNewItemErrors({})
