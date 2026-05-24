@@ -23,6 +23,13 @@ export function canAccessScreen(role, screen) {
   return Boolean(SCREEN_PERMISSIONS[screen]?.includes(role))
 }
 
+export function canAccessScreenWithUser(user, screen) {
+  if (!user?.role) return false
+  if (user.role === 'owner') return true
+  if (Array.isArray(user.permissions)) return user.permissions.includes(screen)
+  return Boolean(SCREEN_PERMISSIONS[screen]?.includes(role))
+}
+
 export function getAllowedScreens(role) {
   return Object.entries(SCREEN_PERMISSIONS)
     .filter(([, roles]) => roles.includes(role))
@@ -33,6 +40,14 @@ export function getDefaultScreen(role) {
   return getAllowedScreens(role)[0] || 'dashboard'
 }
 
-export function filterNavByRole(items, role) {
-  return items.filter((item) => canAccessScreen(role, item.id))
+export function getDefaultScreenForUser(user) {
+  if (user?.role === 'owner') return 'dashboard'
+  if (Array.isArray(user?.permissions) && user.permissions.length > 0) {
+    return Object.keys(SCREEN_PERMISSIONS).find((screen) => user.permissions.includes(screen)) || user.permissions[0]
+  }
+  return getDefaultScreen(user?.role)
+}
+
+export function filterNavByRole(items, role, user) {
+  return items.filter((item) => user ? canAccessScreenWithUser(user, item.id) : canAccessScreen(role, item.id))
 }

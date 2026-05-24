@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { query, queryOne, queryAll } from '../db/pool.js'
-import { authenticate, authorize } from '../middleware/auth.js'
+import { authenticate, authorize, authorizeScreens } from '../middleware/auth.js'
 import { emitToRoles } from '../socketRooms.js'
 
 const router = Router()
@@ -12,7 +12,7 @@ router.use(authenticate)
  * GET /api/tables
  * Lấy danh sách bàn của quán
  */
-router.get('/', authorize('owner', 'manager', 'waiter', 'cashier'), async (req, res) => {
+router.get('/', authorizeScreens('tables'), async (req, res) => {
   try {
     const tables = await queryAll(
       `SELECT * FROM tables WHERE tenant_id = $1 ORDER BY id`,
@@ -28,7 +28,7 @@ router.get('/', authorize('owner', 'manager', 'waiter', 'cashier'), async (req, 
  * POST /api/tables
  * Thêm bàn mới (chỉ owner/manager)
  */
-router.post('/', authorize('owner', 'manager'), async (req, res) => {
+router.post('/', authorizeScreens('tables'), async (req, res) => {
   try {
     const { name, zone, capacity } = req.body
     if (!name) return res.status(400).json({ error: 'Thiếu tên bàn' })
@@ -48,7 +48,7 @@ router.post('/', authorize('owner', 'manager'), async (req, res) => {
  * PATCH /api/tables/:id/status
  * Cập nhật trạng thái bàn (empty/occupied/waiting/reserved)
  */
-router.patch('/:id/status', authorize('owner', 'manager', 'waiter', 'cashier'), async (req, res) => {
+router.patch('/:id/status', authorizeScreens('tables'), async (req, res) => {
   try {
     const { status } = req.body
     const validStatuses = ['empty', 'occupied', 'waiting', 'reserved']

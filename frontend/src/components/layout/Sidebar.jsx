@@ -20,7 +20,7 @@ const ICON_MAP = {
 }
 
 export default function Sidebar({ active, setActive, collapsed, setCollapsed, user, onLogout }) {
-  const navItems = filterNavByRole(NAV_ITEMS, user?.role)
+  const navItems = filterNavByRole(NAV_ITEMS, user?.role, user)
 
   return (
     <aside

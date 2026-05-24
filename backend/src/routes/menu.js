@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { query, queryAll, queryOne } from '../db/pool.js'
-import { authenticate, authorize } from '../middleware/auth.js'
+import { authenticate, authorizeScreens } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -135,7 +135,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/sets', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.get('/sets', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     await ensureDefaultMenuSet(req.user.tenantId)
     const sets = await queryAll(
@@ -156,7 +156,7 @@ router.get('/sets', authenticate, authorize('owner', 'manager'), async (req, res
   }
 })
 
-router.post('/sets', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/sets', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { name, type = 'regular', description = '', isActive = false } = req.body
     if (!name?.trim()) return res.status(400).json({ error: 'Thiếu tên bộ menu' })
@@ -179,7 +179,7 @@ router.post('/sets', authenticate, authorize('owner', 'manager'), async (req, re
   }
 })
 
-router.patch('/sets/:setId', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.patch('/sets/:setId', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { name, type, description, isActive } = req.body
     if (isActive === true) {
@@ -206,7 +206,7 @@ router.patch('/sets/:setId', authenticate, authorize('owner', 'manager'), async 
   }
 })
 
-router.post('/sets/:setId/activate', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/sets/:setId/activate', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const existing = await queryOne(
       'SELECT id FROM menu_sets WHERE id = $1 AND tenant_id = $2',
@@ -226,7 +226,7 @@ router.post('/sets/:setId/activate', authenticate, authorize('owner', 'manager')
   }
 })
 
-router.get('/sets/:setId/items', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.get('/sets/:setId/items', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const set = await queryOne(
       'SELECT * FROM menu_sets WHERE id = $1 AND tenant_id = $2',
@@ -249,7 +249,7 @@ router.get('/sets/:setId/items', authenticate, authorize('owner', 'manager'), as
   }
 })
 
-router.get('/sets/:setId/categories', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.get('/sets/:setId/categories', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const set = await queryOne(
       'SELECT id FROM menu_sets WHERE id = $1 AND tenant_id = $2',
@@ -265,7 +265,7 @@ router.get('/sets/:setId/categories', authenticate, authorize('owner', 'manager'
   }
 })
 
-router.post('/sets/:setId/categories', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/sets/:setId/categories', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const name = String(req.body.name || '').trim()
     if (!name) return res.status(400).json({ error: 'Nhập tên danh mục' })
@@ -290,7 +290,7 @@ router.post('/sets/:setId/categories', authenticate, authorize('owner', 'manager
   }
 })
 
-router.post('/sets/:setId/items', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/sets/:setId/items', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { name, category, price, description = '', available = true, imageUrl = null, image_url = null } = req.body
     if (!name || !category || !price) return res.status(400).json({ error: 'Thiếu thông tin món' })
@@ -315,7 +315,7 @@ router.post('/sets/:setId/items', authenticate, authorize('owner', 'manager'), a
   }
 })
 
-router.post('/sets/:setId/import', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/sets/:setId/import', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { items = [], mode = 'append' } = req.body
     const set = await queryOne(
@@ -370,7 +370,7 @@ router.post('/sets/:setId/import', authenticate, authorize('owner', 'manager'), 
  * POST /api/menu
  * Thêm món mới vào bộ menu active (tương thích API cũ)
  */
-router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { name, category, price, description, menuSetId, imageUrl = null, image_url = null } = req.body
     if (!name || !category || !price) return res.status(400).json({ error: 'Thiếu thông tin món' })
@@ -397,7 +397,7 @@ router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) =
  * PATCH /api/menu/:id
  * Cập nhật món.
  */
-router.patch('/:id', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.patch('/:id', authenticate, authorizeScreens('menu'), async (req, res) => {
   try {
     const { name, price, available, category, description, menuSetId, imageUrl, image_url } = req.body
     const nextImageUrl = imageUrl === undefined ? image_url : imageUrl

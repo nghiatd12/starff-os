@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Settings, Table2, Printer, Bell, Shield, Plus, Trash2, Pencil, QrCode, Upload, X, Save
 } from '@/components/ui/Icon'
@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card'
 import { getPaymentSettings, savePaymentSettings } from '@/lib/settings'
 import { NAV_ITEMS } from '@/constants/navigation'
 import { ROLE_LABELS, SCREEN_PERMISSIONS } from '@/lib/permissions'
+import { api } from '@/lib/api'
 
 const TABS = [
   { id: 'general',  label: 'Thông tin chung', Icon: Settings },
@@ -54,6 +55,20 @@ export default function SettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [paymentSettings, setPaymentSettings] = useState(getPaymentSettings)
   const [paymentSaved, setPaymentSaved] = useState(false)
+  const [permissions, setPermissions] = useState(null)
+  const [permissionsLoading, setPermissionsLoading] = useState(false)
+  const [permissionSaving, setPermissionSaving] = useState('')
+  const [permissionError, setPermissionError] = useState('')
+
+  useEffect(() => {
+    if (activeTab !== 'roles' || permissions) return
+    setPermissionsLoading(true)
+    setPermissionError('')
+    api.get('/permissions')
+      .then((data) => setPermissions(data.permissions || {}))
+      .catch((err) => setPermissionError(err.message || 'Không tải được phân quyền'))
+      .finally(() => setPermissionsLoading(false))
+  }, [activeTab, permissions])
 
   const handleAddZone = () => {
     if (!newZone.name || !newZone.tables) return
@@ -95,6 +110,22 @@ export default function SettingsPage() {
     const savedSettings = savePaymentSettings(paymentSettings)
     setPaymentSettings(savedSettings)
     setPaymentSaved(true)
+  }
+
+  const handleTogglePermission = async (role, screen) => {
+    if (role === 'owner') return
+    const current = permissions?.[role]?.[screen] || false
+    const key = `${role}:${screen}`
+    setPermissionSaving(key)
+    setPermissionError('')
+    try {
+      const data = await api.patch('/permissions', { role, screen, allowed: !current })
+      setPermissions(data.permissions || {})
+    } catch (err) {
+      setPermissionError(err.message || 'Không lưu được phân quyền')
+    } finally {
+      setPermissionSaving('')
+    }
   }
 
   return (
@@ -465,10 +496,18 @@ export default function SettingsPage() {
               <div className="border-b border-slate-100 px-6 py-5">
                 <h2 className="text-lg font-bold text-slate-800">Phân quyền theo vai trò</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Chủ quán có toàn quyền. Các vai trò nhân viên chỉ thấy và dùng các màn được cấp bên dưới.
+                  Bật/tắt quyền cho từng vai trò. Thay đổi được lưu ngay và áp dụng ở lần tải quyền tiếp theo của nhân viên.
                 </p>
+                {permissionError && (
+                  <p className="mt-3 inline-flex rounded-xl bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600">
+                    {permissionError}
+                  </p>
+                )}
               </div>
 
+              {permissionsLoading ? (
+                <div className="p-8 text-center text-sm text-slate-400">Đang tải phân quyền...</div>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px]">
                   <thead>
@@ -488,16 +527,22 @@ export default function SettingsPage() {
                           <p className="text-sm font-semibold text-slate-700">{item.label}</p>
                         </td>
                         {ROLE_ORDER.map((role) => {
-                          const allowed = SCREEN_PERMISSIONS[item.id]?.includes(role)
+                          const allowed = permissions?.[role]?.[item.id] ?? SCREEN_PERMISSIONS[item.id]?.includes(role)
+                          const saving = permissionSaving === `${role}:${item.id}`
+                          const locked = role === 'owner'
                           return (
                             <td key={role} className="p-4 text-center">
-                              <span className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                              <button
+                                type="button"
+                                disabled={locked || saving}
+                                onClick={() => handleTogglePermission(role, item.id)}
+                                className={`inline-flex h-8 min-w-14 items-center justify-center rounded-full px-3 text-xs font-bold transition-colors disabled:cursor-not-allowed ${
                                 allowed
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : 'bg-slate-50 text-slate-300'
                               }`}>
-                                {allowed ? 'Có' : '-'}
-                              </span>
+                                {saving ? '...' : allowed ? 'Bật' : 'Tắt'}
+                              </button>
                             </td>
                           )
                         })}
@@ -506,6 +551,7 @@ export default function SettingsPage() {
                   </tbody>
                 </table>
               </div>
+              )}
             </Card>
           )}
 

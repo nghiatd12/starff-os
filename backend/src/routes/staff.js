@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import bcrypt from 'bcrypt'
 import { query, queryOne, queryAll } from '../db/pool.js'
-import { authenticate, authorize } from '../middleware/auth.js'
+import { authenticate, authorize, authorizeScreens } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -17,7 +17,7 @@ const ROLE_LABEL = {
  * GET /api/staff
  * Lấy danh sách nhân viên của tenant hiện tại
  */
-router.get('/', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.get('/', authenticate, authorizeScreens('staff'), async (req, res) => {
   try {
     const { tenantId } = req.user
     const employees = await queryAll(
@@ -39,7 +39,7 @@ router.get('/', authenticate, authorize('owner', 'manager'), async (req, res) =>
  * Thêm nhân viên mới
  * Body: { name, phone, role, pin, password }
  */
-router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.post('/', authenticate, authorizeScreens('staff'), async (req, res) => {
   try {
     const { tenantId } = req.user
     const { name, phone, role, pin, password } = req.body
@@ -84,7 +84,7 @@ router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) =
  * PATCH /api/staff/:id
  * Cập nhật thông tin nhân viên
  */
-router.patch('/:id', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.patch('/:id', authenticate, authorizeScreens('staff'), async (req, res) => {
   try {
     const { tenantId } = req.user
     const { id } = req.params
@@ -135,7 +135,7 @@ router.patch('/:id', authenticate, authorize('owner', 'manager'), async (req, re
  * DELETE /api/staff/:id
  * Vô hiệu hóa nhân viên (soft delete)
  */
-router.delete('/:id', authenticate, authorize('owner', 'manager'), async (req, res) => {
+router.delete('/:id', authenticate, authorizeScreens('staff'), async (req, res) => {
   try {
     const { tenantId } = req.user
     const { id } = req.params

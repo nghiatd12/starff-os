@@ -6,7 +6,7 @@ import { clearAuth, getRefreshToken, getToken, getUser, setUser as saveUser } fr
 import { prefetchAll, clearStore, bindSocketToStore } from '@/lib/store'
 import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { isAudioUnlocked, playNewOrder, playOrderReady, playStaffCall, unlockAudio } from '@/lib/sound'
-import { canAccessScreen, getDefaultScreen } from '@/lib/permissions'
+import { canAccessScreenWithUser, getDefaultScreenForUser } from '@/lib/permissions'
 
 // Feature pages
 import DashboardPage  from '@/features/dashboard/DashboardPage'
@@ -92,7 +92,7 @@ export default function App() {
 
   const setActiveScreen = (screen) => {
     if (!SCREENS[screen]) return
-    if (user?.role && !canAccessScreen(user.role, screen)) return
+    if (user?.role && !canAccessScreenWithUser(user, screen)) return
     setActiveScreenState(screen)
     const nextPath = buildAppPath(storeSlug || user?.storeSlug || user?.store_slug, screen)
     if (window.location.pathname !== nextPath || window.location.hash) {
@@ -169,7 +169,7 @@ export default function App() {
 
     const startApp = (userData) => {
       setUser(userData)
-      const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
+      const nextScreen = canAccessScreenWithUser(userData, activeScreen) ? activeScreen : getDefaultScreenForUser(userData)
       const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
       setActiveScreenState(nextScreen)
       setStoreSlug(nextSlug || '')
@@ -205,7 +205,7 @@ export default function App() {
         saveUser(userData)
         setUser(userData)
         setStoreSlug(userSlug || '')
-        const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
+        const nextScreen = canAccessScreenWithUser(userData, activeScreen) ? activeScreen : getDefaultScreenForUser(userData)
         if (nextScreen !== activeScreen) {
           setActiveScreenState(nextScreen)
         }
@@ -228,8 +228,8 @@ export default function App() {
   useEffect(() => {
     const handleLocationChange = () => {
       const nextRoute = parseAppPath()
-      const nextScreen = user?.role && !canAccessScreen(user.role, nextRoute.screen)
-        ? getDefaultScreen(user.role)
+      const nextScreen = user?.role && !canAccessScreenWithUser(user, nextRoute.screen)
+        ? getDefaultScreenForUser(user)
         : nextRoute.screen
       setRoute(nextRoute)
       setStoreSlug(nextRoute.storeSlug)
@@ -248,7 +248,7 @@ export default function App() {
 
   const handleLogin = async (userData) => {
     setUser(userData)
-    const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
+    const nextScreen = canAccessScreenWithUser(userData, activeScreen) ? activeScreen : getDefaultScreenForUser(userData)
     const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
     setActiveScreenState(nextScreen)
     setStoreSlug(nextSlug || '')

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { roleCanAccessScreens } from '../permissions.js'
 
 /**
  * Middleware xác thực JWT token
@@ -36,5 +37,24 @@ export function authorize(...roles) {
       return res.status(403).json({ error: 'Không có quyền truy cập' })
     }
     next()
+  }
+}
+
+export function authorizeScreens(...screens) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Chưa đăng nhập' })
+    }
+
+    try {
+      const allowed = await roleCanAccessScreens(req.user.tenantId, req.user.role, screens)
+      if (!allowed) {
+        return res.status(403).json({ error: 'Không có quyền truy cập' })
+      }
+      next()
+    } catch (err) {
+      console.error('[Auth] Permission check error:', err)
+      res.status(500).json({ error: 'Lỗi kiểm tra phân quyền' })
+    }
   }
 }

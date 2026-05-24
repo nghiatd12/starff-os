@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { query, queryOne } from '../db/pool.js'
 import { authenticate } from '../middleware/auth.js'
+import { getUserAllowedScreens } from '../permissions.js'
 
 const router = Router()
 const ACCESS_TOKEN_TTL = '15m'
@@ -54,7 +55,8 @@ function createRefreshToken(user) {
   )
 }
 
-function publicUser(user) {
+async function publicUser(user) {
+  const permissions = await getUserAllowedScreens(user.tenant_id, user.role)
   return {
     id: user.id,
     name: user.name,
@@ -64,6 +66,7 @@ function publicUser(user) {
     storeSlug: user.store_slug,
     store_name: user.store_name,
     store_slug: user.store_slug,
+    permissions,
   }
 }
 
@@ -175,7 +178,7 @@ router.post('/login', async (req, res) => {
       refreshToken: createRefreshToken(user),
       expiresIn: 15 * 60,
       refreshExpiresIn: 24 * 60 * 60,
-      user: publicUser(user),
+      user: await publicUser(user),
     })
   } catch (err) {
     console.error('[Auth] Login error:', err)
@@ -214,7 +217,7 @@ router.post('/refresh', async (req, res) => {
       refreshToken: createRefreshToken(user),
       expiresIn: 15 * 60,
       refreshExpiresIn: 24 * 60 * 60,
-      user: publicUser(user),
+      user: await publicUser(user),
     })
   } catch (err) {
     return res.status(401).json({ error: 'Refresh token không hợp lệ hoặc đã hết hạn' })
@@ -234,7 +237,7 @@ router.get('/me', authenticate, async (req, res) => {
       [req.user.id]
     )
     if (!user) return res.status(404).json({ error: 'User not found' })
-    res.json({ user: publicUser(user) })
+    res.json({ user: await publicUser(user) })
   } catch (err) {
     res.status(500).json({ error: 'Lỗi server' })
   }

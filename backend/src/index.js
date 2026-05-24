@@ -16,6 +16,7 @@ import adminRoutes from './routes/admin.js'
 import staffRoutes from './routes/staff.js'
 import dashboardRoutes from './routes/dashboard.js'
 import customersRoutes from './routes/customers.js'
+import permissionsRoutes from './routes/permissions.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -81,6 +82,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/staff', staffRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/customers', customersRoutes)
+app.use('/api/permissions', permissionsRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -238,6 +238,79 @@ async function migrate() {
   `)
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      role      VARCHAR(20) NOT NULL,
+      screen    VARCHAR(50) NOT NULL,
+      allowed   BOOLEAN DEFAULT false,
+      updated_at TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (tenant_id, role, screen)
+    );
+
+    INSERT INTO role_permissions (tenant_id, role, screen, allowed)
+    SELECT
+      t.id,
+      defaults.role,
+      defaults.screen,
+      defaults.allowed
+    FROM tenants t
+    CROSS JOIN (
+      VALUES
+        ('owner', 'dashboard', true),
+        ('owner', 'tables', true),
+        ('owner', 'order', true),
+        ('owner', 'kitchen', true),
+        ('owner', 'cashier', true),
+        ('owner', 'qr-menu', true),
+        ('owner', 'menu', true),
+        ('owner', 'staff', true),
+        ('owner', 'customers', true),
+        ('owner', 'settings', true),
+        ('manager', 'dashboard', true),
+        ('manager', 'tables', true),
+        ('manager', 'order', true),
+        ('manager', 'kitchen', true),
+        ('manager', 'cashier', true),
+        ('manager', 'qr-menu', true),
+        ('manager', 'menu', true),
+        ('manager', 'staff', true),
+        ('manager', 'customers', true),
+        ('manager', 'settings', false),
+        ('waiter', 'dashboard', false),
+        ('waiter', 'tables', true),
+        ('waiter', 'order', true),
+        ('waiter', 'kitchen', false),
+        ('waiter', 'cashier', false),
+        ('waiter', 'qr-menu', false),
+        ('waiter', 'menu', false),
+        ('waiter', 'staff', false),
+        ('waiter', 'customers', false),
+        ('waiter', 'settings', false),
+        ('kitchen', 'dashboard', false),
+        ('kitchen', 'tables', false),
+        ('kitchen', 'order', false),
+        ('kitchen', 'kitchen', true),
+        ('kitchen', 'cashier', false),
+        ('kitchen', 'qr-menu', false),
+        ('kitchen', 'menu', false),
+        ('kitchen', 'staff', false),
+        ('kitchen', 'customers', false),
+        ('kitchen', 'settings', false),
+        ('cashier', 'dashboard', false),
+        ('cashier', 'tables', true),
+        ('cashier', 'order', false),
+        ('cashier', 'kitchen', false),
+        ('cashier', 'cashier', true),
+        ('cashier', 'qr-menu', false),
+        ('cashier', 'menu', false),
+        ('cashier', 'staff', false),
+        ('cashier', 'customers', true),
+        ('cashier', 'settings', false)
+    ) AS defaults(role, screen, allowed)
+    ON CONFLICT (tenant_id, role, screen) DO NOTHING;
+  `)
+
+  await pool.query(`
     UPDATE tenants
     SET
       name = 'Quán Cậu Út',

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { queryAll, queryOne } from '../db/pool.js'
-import { authenticate, authorize } from '../middleware/auth.js'
+import { authenticate, authorizeScreens } from '../middleware/auth.js'
 
 const router = Router()
 router.use(authenticate)
@@ -11,7 +11,7 @@ function pctChange(current, previous) {
   return Math.round(((current - previous) / previous) * 100)
 }
 
-router.get('/summary', authorize('owner', 'manager'), async (req, res) => {
+router.get('/summary', authorizeScreens('dashboard'), async (req, res) => {
   try {
     const { tenantId } = req.user
 
