@@ -8,7 +8,7 @@ import Select from '@/components/ui/Select'
 
 export default function OrderPage() {
   const { menu: menuData, categories, loading: menuLoading } = useMenu()
-  const { tables, loading: tablesLoading } = useTables()
+  const { tables, refresh: refreshTables, loading: tablesLoading } = useTables()
   const loading = menuLoading && tablesLoading
 
   const [activeCategory, setActiveCategory] = useState('')
@@ -23,6 +23,10 @@ export default function OrderPage() {
       setActiveCategory(categories[0])
     }
   }, [categories, activeCategory])
+
+  useEffect(() => {
+    if (tables.length === 0) refreshTables()
+  }, [tables.length, refreshTables])
 
   useEffect(() => {
     if (tables.length > 0 && !selectedTable) {
@@ -119,7 +123,7 @@ export default function OrderPage() {
               <Select
                 value={selectedTable}
                 onChange={setSelectedTable}
-                options={tables.filter((t) => t.status !== 'empty').map((t) => ({ value: t.name, label: t.name }))}
+                options={tables.map((t) => ({ value: t.name, label: t.zone ? `${t.name} - ${t.zone}` : t.name }))}
                 placeholder="Chọn bàn"
                 className="w-40"
               />
