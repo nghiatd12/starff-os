@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { getPaymentQrImageUrl, getPaymentSettings, subscribePaymentSettings } from '@/lib/settings'
 import { formatCurrency } from '@/utils/format'
+import { getTenantPrintInfo } from '@/utils/tenant'
 import { Printer, Banknote, QrCode, Check } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 
@@ -10,7 +11,7 @@ const PAYMENT_METHODS = [
   { id: 'qr', label: 'QR', Icon: QrCode },
 ]
 
-export default function BillDetail({ table, orders, onPaid }) {
+export default function BillDetail({ table, orders, user, onPaid }) {
   const [discount, setDiscount] = useState('')
   const [payMethod, setPayMethod] = useState('cash')
   const [paying, setPaying] = useState(false)
@@ -45,6 +46,7 @@ export default function BillDetail({ table, orders, onPaid }) {
   })
   const paymentLabel = PAYMENT_METHODS.find((method) => method.id === payMethod)?.label || payMethod
   const paymentQrImageUrl = getPaymentQrImageUrl(paymentSettings, { amount: total, billCode })
+  const tenantInfo = getTenantPrintInfo(user)
 
   const handlePrint = () => {
     window.print()
@@ -251,6 +253,7 @@ export default function BillDetail({ table, orders, onPaid }) {
         paymentMethod={payMethod}
         paymentSettings={paymentSettings}
         paymentQrImageUrl={paymentQrImageUrl}
+        tenantInfo={tenantInfo}
       />
 
       {showQrModal && payMethod === 'qr' && (
@@ -316,15 +319,16 @@ function PrintableBill({
   paymentMethod,
   paymentSettings,
   paymentQrImageUrl,
+  tenantInfo,
 }) {
   const shouldPrintPaymentQr = paymentMethod === 'qr' && paymentQrImageUrl
 
   return (
     <div className="print-bill">
       <div className="print-bill__header">
-        <h1>Quán Cậu Út</h1>
-        <p>123 Nguyễn Huệ, Q.7, TP.HCM</p>
-        <p>ĐT: 0901 234 567</p>
+        <h1>{tenantInfo.name}</h1>
+        {tenantInfo.address && <p>{tenantInfo.address}</p>}
+        {tenantInfo.phone && <p>ĐT: {tenantInfo.phone}</p>}
       </div>
 
       <div className="print-bill__title">
@@ -396,7 +400,7 @@ function PrintableBill({
 
       <div className="print-bill__footer">
         <strong>Cảm ơn quý khách!</strong>
-        <p>Hẹn gặp lại tại Quán Cậu Út.</p>
+        <p>{tenantInfo.goodbye}</p>
       </div>
     </div>
   )

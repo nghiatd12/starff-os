@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/utils/format'
+import { getTenantPrintInfo } from '@/utils/tenant'
 import { Banknote, Printer, QrCode, Save, Search, Trash2 } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import { useMenu } from '@/lib/useStore'
@@ -39,7 +40,7 @@ function formatDate(value) {
   }).format(new Date(value))
 }
 
-export default function CashierHistory() {
+export default function CashierHistory({ user }) {
   const { menu, refresh: refreshMenu } = useMenu()
   const [orders, setOrders] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -68,6 +69,7 @@ export default function CashierHistory() {
   const subtotal = draftItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0)
   const discountAmount = Math.round(subtotal * (Number(discount || 0) / 100))
   const total = Math.max(0, subtotal - discountAmount)
+  const tenantInfo = getTenantPrintInfo(user)
 
   const loadHistory = () => {
     setLoading(true)
@@ -385,6 +387,7 @@ export default function CashierHistory() {
               discountAmount={discountAmount}
               total={total}
               paymentMethod={paymentMethod}
+              tenantInfo={tenantInfo}
             />
           </div>
         )}
@@ -393,13 +396,13 @@ export default function CashierHistory() {
   )
 }
 
-function HistoryPrintableBill({ order, items, subtotal, discount, discountAmount, total, paymentMethod }) {
+function HistoryPrintableBill({ order, items, subtotal, discount, discountAmount, total, paymentMethod, tenantInfo }) {
   return (
     <div className="print-bill">
       <div className="print-bill__header">
-        <h1>Quán Cậu Út</h1>
-        <p>123 Nguyễn Huệ, Q.7, TP.HCM</p>
-        <p>ĐT: 0901 234 567</p>
+        <h1>{tenantInfo.name}</h1>
+        {tenantInfo.address && <p>{tenantInfo.address}</p>}
+        {tenantInfo.phone && <p>ĐT: {tenantInfo.phone}</p>}
       </div>
 
       <div className="print-bill__title">
@@ -463,7 +466,7 @@ function HistoryPrintableBill({ order, items, subtotal, discount, discountAmount
 
       <div className="print-bill__footer">
         <strong>Cảm ơn quý khách!</strong>
-        <p>Hẹn gặp lại tại Quán Cậu Út.</p>
+        <p>{tenantInfo.goodbye}</p>
       </div>
     </div>
   )

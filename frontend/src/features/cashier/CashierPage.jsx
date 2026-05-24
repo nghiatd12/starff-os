@@ -5,20 +5,26 @@ import TableList from './components/TableList'
 import BillDetail from './components/BillDetail'
 import CashierHistory from './components/CashierHistory'
 
-export default function CashierPage() {
+export default function CashierPage({ user, onUserUpdate }) {
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTable, setSelectedTable] = useState(null)
   const [activeTab, setActiveTab] = useState('current')
+  const [tenantUser, setTenantUser] = useState(user)
 
   useEffect(() => {
     Promise.all([
       api.get('/tables').catch(() => null),
       api.get('/orders/billing').catch(() => null),
-    ]).then(([tablesRes, ordersRes]) => {
+      api.get('/auth/me').catch(() => null),
+    ]).then(([tablesRes, ordersRes, meRes]) => {
       const allTables = tablesRes?.tables || []
       const billingOrders = ordersRes?.orders || []
+      if (meRes?.user) {
+        setTenantUser(meRes.user)
+        onUserUpdate?.(meRes.user)
+      }
       const tableIdsWithBill = new Set(billingOrders.map((order) => order.table_id))
       const openTables = allTables.filter((table) => tableIdsWithBill.has(table.id))
       setTables(openTables)
@@ -59,7 +65,7 @@ export default function CashierPage() {
       </div>
 
       {activeTab === 'history' ? (
-        <CashierHistory />
+        <CashierHistory user={tenantUser || user} />
       ) : (
       <div className="flex min-h-0 flex-1">
       <TableList
@@ -73,6 +79,7 @@ export default function CashierPage() {
         <BillDetail
           table={selectedTable}
           orders={orders}
+          user={tenantUser || user}
           onPaid={(tableId) => {
             // Xóa bàn khỏi danh sách sau khi thanh toán
             setTables((prev) => prev.filter((t) => t.id !== tableId))
