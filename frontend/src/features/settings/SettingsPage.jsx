@@ -96,8 +96,7 @@ export default function SettingsPage() {
   return (
     <div className="p-6 lg:p-8 fade-in h-full overflow-y-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Cài đặt</h1>
-        <p className="text-slate-400 text-sm mt-1">Quản lý cấu hình hệ thống</p>
+        <p className="text-slate-400 text-sm">Quản lý cấu hình hệ thống</p>
       </div>
 
       <div className="flex gap-6">

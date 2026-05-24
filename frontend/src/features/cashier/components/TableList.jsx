@@ -30,8 +30,7 @@ export default function TableList({ tables, orders, selectedId, onSelect }) {
   return (
     <div className="w-72 bg-white border-r border-slate-100 flex flex-col">
       <div className="p-5 border-b border-slate-100 flex-shrink-0">
-        <h2 className="font-bold text-slate-800">Thu ngân</h2>
-        <p className="text-xs text-slate-400 mt-0.5">{tables.length} bàn có hóa đơn</p>
+        <p className="text-xs text-slate-400">{tables.length} bàn có hóa đơn</p>
       </div>
 
       <div className="flex-1 overflow-y-auto">

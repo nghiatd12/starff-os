@@ -46,8 +46,7 @@ export default function CustomersPage() {
         <div className="p-5 lg:p-6 border-b border-slate-100 bg-white flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Khách hàng thân thiết</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Loyalty & CRM · {customers.length} khách hàng</p>
+              <p className="text-xs text-slate-400">Loyalty & CRM · {customers.length} khách hàng</p>
             </div>
             <button
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium text-white transition-all hover:opacity-90"

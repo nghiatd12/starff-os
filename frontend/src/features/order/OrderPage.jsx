@@ -101,8 +101,7 @@ export default function OrderPage() {
         <div className="p-5 lg:p-6 border-b border-slate-100 bg-white flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Gọi món</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Chọn món và gửi xuống bếp</p>
+              <p className="text-xs text-slate-400">Chọn món và gửi xuống bếp</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">Bàn:</span>

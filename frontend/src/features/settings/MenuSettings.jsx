@@ -454,8 +454,7 @@ export default function MenuSettings() {
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between gap-3 flex-shrink-0">
           <div>
-            <h2 className="font-bold text-slate-800">Quản lý menu</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Bộ menu · Danh mục · Món ăn</p>
+            <p className="text-xs text-slate-400">Bộ menu · Danh mục · Món ăn</p>
             {status && (
               <p className="text-xs font-medium text-emerald-700 mt-1">
                 {status}

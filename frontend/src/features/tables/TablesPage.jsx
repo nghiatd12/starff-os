@@ -129,8 +129,7 @@ export default function TablesPage({ setActive }) {
     <div className="p-6 lg:p-8 fade-in h-full overflow-hidden flex flex-col">
       <div className="mb-5 flex items-end justify-between flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sơ đồ bàn</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-400 text-sm">
             Quản lý {displayTables.length} bàn · {zones.length - 1} khu vực
           </p>
         </div>

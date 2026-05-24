@@ -87,8 +87,7 @@ export default function QrMenuPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">QR Menu — Khách tự gọi</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-400">
             Mỗi bàn có mã QR riêng. Khách quét → xem menu → gọi món trực tiếp.
           </p>
         </div>

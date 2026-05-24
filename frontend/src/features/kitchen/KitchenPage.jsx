@@ -108,8 +108,7 @@ export default function KitchenPage() {
             <ChefHat size={18} className="text-emerald-600" />
           </div>
           <div>
-            <h1 className="text-slate-800 font-bold text-base leading-tight">Màn hình bếp</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <p className="text-slate-400 text-xs">{orders.length} đơn đang chờ</p>
             </div>

@@ -25,8 +25,7 @@ export default function StaffPage() {
       {/* Header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Nhân viên</h1>
-          <p className="text-slate-400 text-sm mt-1">Quản lý nhân sự của quán</p>
+          <p className="text-slate-400 text-sm">Quản lý nhân sự của quán</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}

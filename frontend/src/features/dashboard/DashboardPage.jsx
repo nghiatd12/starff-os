@@ -165,8 +165,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Tổng quan</h1>
-          <p className="text-slate-400 text-sm mt-1">Dữ liệu hoạt động hôm nay — {dateLabel}</p>
+          <p className="text-slate-400 text-sm">Dữ liệu hoạt động hôm nay — {dateLabel}</p>
           {error && (
             <button
               onClick={loadDashboard}
