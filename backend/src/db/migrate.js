@@ -239,8 +239,11 @@ async function migrate() {
 
   await pool.query(`
     UPDATE tenants
-    SET name = 'Quán Cậu Út'
-    WHERE name = 'Bia Garden Q7';
+    SET
+      name = 'Quán Cậu Út',
+      slug = 'quan-cau-ut'
+    WHERE slug = 'bia-garden-q7'
+       OR name = 'Bia Garden Q7';
   `)
 
   console.log('✅ All tables created successfully!')

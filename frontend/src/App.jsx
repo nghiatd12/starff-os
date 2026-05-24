@@ -200,6 +200,10 @@ export default function App() {
 
         saveUser(userData)
         setUser(userData)
+        setStoreSlug(userSlug || '')
+        if (!route.storeSlug && userSlug && !window.location.pathname.startsWith(`/${userSlug}/`)) {
+          window.history.replaceState(null, '', buildAppPath(userSlug, activeScreen))
+        }
         if (!canUseCachedUser) {
           startApp(userData)
           prefetchAll().catch(() => {})

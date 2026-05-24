@@ -12,7 +12,7 @@ async function seed() {
   // 1. Tạo quán mẫu
   const { rows: [tenant] } = await pool.query(`
     INSERT INTO tenants (name, slug, address, phone, type, table_count)
-    VALUES ('Quán Cậu Út', 'bia-garden-q7', '123 Nguyễn Huệ, Q.7, TP.HCM', '0901234567', 'beer', 15)
+    VALUES ('Quán Cậu Út', 'quan-cau-ut', '123 Nguyễn Huệ, Q.7, TP.HCM', '0901234567', 'beer', 15)
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
   `)
