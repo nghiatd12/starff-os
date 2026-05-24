@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { query, queryOne, queryAll } from '../db/pool.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { emitToRoles } from '../socketRooms.js'
 
 const router = Router()
@@ -10,7 +10,7 @@ router.use(authenticate)
  * POST /api/orders
  * Tạo order mới cho bàn
  */
-router.post('/', async (req, res) => {
+router.post('/', authorize('owner', 'manager', 'waiter'), async (req, res) => {
   try {
     const { tableId, guestCount, items, note } = req.body
 
@@ -89,7 +89,7 @@ router.post('/', async (req, res) => {
  * GET /api/orders/active
  * Lấy tất cả order đang mở (cho KDS và waiter)
  */
-router.get('/active', async (req, res) => {
+router.get('/active', authorize('owner', 'manager', 'waiter', 'kitchen'), async (req, res) => {
   try {
     const orders = await queryAll(
       `SELECT o.*, t.name as table_name
@@ -118,7 +118,7 @@ router.get('/active', async (req, res) => {
  * Lấy tất cả order chưa thanh toán cho màn thu ngân.
  * Khác /active: bao gồm cả order đã bếp hoàn thành (ready) để vẫn còn bill.
  */
-router.get('/billing', async (req, res) => {
+router.get('/billing', authorize('owner', 'manager', 'cashier'), async (req, res) => {
   try {
     const orders = await queryAll(
       `SELECT o.*, t.name as table_name
@@ -146,7 +146,7 @@ router.get('/billing', async (req, res) => {
  * Cập nhật trạng thái món (pending → preparing → done)
  * Dùng cho bếp tick từng món
  */
-router.patch('/:id/items/:itemId', async (req, res) => {
+router.patch('/:id/items/:itemId', authorize('owner', 'manager', 'kitchen'), async (req, res) => {
   try {
     const { status } = req.body
     const validStatuses = ['pending', 'preparing', 'done']
@@ -181,7 +181,7 @@ router.patch('/:id/items/:itemId', async (req, res) => {
  * PATCH /api/orders/:id/complete
  * Hoàn thành order (bếp xong hết) → chuyển status = 'ready'
  */
-router.patch('/:id/complete', async (req, res) => {
+router.patch('/:id/complete', authorize('owner', 'manager', 'kitchen'), async (req, res) => {
   try {
     const { rows: [order] } = await query(
       `UPDATE orders SET status = 'ready' WHERE id = $1 AND tenant_id = $2 RETURNING *`,
@@ -210,7 +210,7 @@ router.patch('/:id/complete', async (req, res) => {
  * PATCH /api/orders/:id/pay
  * Thanh toán order → đóng bill
  */
-router.patch('/:id/pay', async (req, res) => {
+router.patch('/:id/pay', authorize('owner', 'manager', 'cashier'), async (req, res) => {
   try {
     const { paymentMethod, discount } = req.body
 

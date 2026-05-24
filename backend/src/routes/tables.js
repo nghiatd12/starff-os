@@ -12,7 +12,7 @@ router.use(authenticate)
  * GET /api/tables
  * Lấy danh sách bàn của quán
  */
-router.get('/', async (req, res) => {
+router.get('/', authorize('owner', 'manager', 'waiter', 'cashier'), async (req, res) => {
   try {
     const tables = await queryAll(
       `SELECT * FROM tables WHERE tenant_id = $1 ORDER BY id`,
@@ -48,7 +48,7 @@ router.post('/', authorize('owner', 'manager'), async (req, res) => {
  * PATCH /api/tables/:id/status
  * Cập nhật trạng thái bàn (empty/occupied/waiting/reserved)
  */
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authorize('owner', 'manager', 'waiter', 'cashier'), async (req, res) => {
   try {
     const { status } = req.body
     const validStatuses = ['empty', 'occupied', 'waiting', 'reserved']

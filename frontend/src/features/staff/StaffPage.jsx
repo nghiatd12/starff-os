@@ -11,7 +11,7 @@ const ROLES = [
   { value: 'kitchen', label: 'Bếp' },
 ]
 
-export default function StaffPage() {
+export default function StaffPage({ user }) {
   const [showAdd, setShowAdd] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -37,10 +37,10 @@ export default function StaffPage() {
         </button>
       </div>
 
-      <EmployeeTable key={refreshKey} />
+      <EmployeeTable key={refreshKey} currentUser={user} />
 
       {showAdd && (
-        <AddEmployeeModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />
+        <AddEmployeeModal currentUser={user} onClose={() => setShowAdd(false)} onAdded={handleAdded} />
       )}
     </div>
   )
@@ -48,7 +48,10 @@ export default function StaffPage() {
 
 // ─── Modal thêm nhân viên ────────────────────────────────────────────────────
 
-function AddEmployeeModal({ onClose, onAdded }) {
+function AddEmployeeModal({ currentUser, onClose, onAdded }) {
+  const availableRoles = currentUser?.role === 'manager'
+    ? ROLES.filter((role) => role.value !== 'manager')
+    : ROLES
   const [form, setForm] = useState({ name: '', phone: '', role: 'waiter', pin: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -117,7 +120,7 @@ function AddEmployeeModal({ onClose, onAdded }) {
             <Select
               value={form.role}
               onChange={(role) => setForm((current) => ({ ...current, role }))}
-              options={ROLES}
+              options={availableRoles}
               placeholder="Chọn vai trò"
             />
           </div>

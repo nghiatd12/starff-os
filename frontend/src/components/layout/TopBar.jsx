@@ -1,5 +1,6 @@
 import { NAV_ITEMS } from '@/constants/navigation'
 import { Search, Bell } from '@/components/ui/Icon'
+import { ROLE_LABELS } from '@/lib/permissions'
 
 export default function TopBar({ activeScreen, user }) {
   const current = NAV_ITEMS.find((item) => item.id === activeScreen)
@@ -39,7 +40,7 @@ export default function TopBar({ activeScreen, user }) {
         <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-100">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold text-slate-700">{user?.name || 'Người dùng'}</p>
-            <p className="text-[10px] text-slate-400">{user?.role || 'Chủ quán'}</p>
+            <p className="text-[10px] text-slate-400">{ROLE_LABELS[user?.role] || user?.role || 'Chủ quán'}</p>
           </div>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: '#10b981' }}>
             {user?.name?.[0] || 'U'}

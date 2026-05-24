@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import { queryAll } from '../db/pool.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 
 const router = Router()
 
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, authorize('owner', 'manager', 'cashier'), async (req, res) => {
   try {
     const customers = await queryAll(
       `SELECT id, name, phone, birthday, tier, points, total_spent, visit_count, last_visit, created_at

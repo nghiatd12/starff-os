@@ -37,7 +37,7 @@ function getColor(id) {
   return AVATAR_COLORS[(id - 1) % AVATAR_COLORS.length]
 }
 
-export default function EmployeeTable() {
+export default function EmployeeTable({ currentUser }) {
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -69,6 +69,8 @@ export default function EmployeeTable() {
     }
     setMenuOpen(null)
   }
+
+  const canManageEmployee = (emp) => currentUser?.role === 'owner' || emp.role !== 'manager'
 
   if (loading) {
     return (
@@ -146,6 +148,7 @@ export default function EmployeeTable() {
               <td className="p-4 text-center relative">
                 <button
                   onClick={() => setMenuOpen(menuOpen === emp.id ? null : emp.id)}
+                  disabled={!canManageEmployee(emp)}
                   className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
                 >
                   <MoreHorizontal size={16} />

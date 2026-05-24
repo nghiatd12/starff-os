@@ -17,7 +17,7 @@ const ROLE_LABEL = {
  * GET /api/staff
  * Lấy danh sách nhân viên của tenant hiện tại
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, authorize('owner', 'manager'), async (req, res) => {
   try {
     const { tenantId } = req.user
     const employees = await queryAll(
@@ -51,6 +51,9 @@ router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) =
     const validRoles = ['manager', 'waiter', 'cashier', 'kitchen']
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: 'Vai trò không hợp lệ' })
+    }
+    if (req.user.role === 'manager' && role === 'manager') {
+      return res.status(403).json({ error: 'Quản lý không thể tạo tài khoản quản lý khác' })
     }
 
     // Kiểm tra số điện thoại đã tồn tại
@@ -89,11 +92,14 @@ router.patch('/:id', authenticate, authorize('owner', 'manager'), async (req, re
 
     // Kiểm tra nhân viên thuộc tenant này
     const existing = await queryOne(
-      'SELECT id FROM users WHERE id = $1 AND tenant_id = $2 AND role != $3',
+      'SELECT id, role FROM users WHERE id = $1 AND tenant_id = $2 AND role != $3',
       [id, tenantId, 'owner']
     )
     if (!existing) {
       return res.status(404).json({ error: 'Không tìm thấy nhân viên' })
+    }
+    if (req.user.role === 'manager' && (existing.role === 'manager' || role === 'manager')) {
+      return res.status(403).json({ error: 'Quản lý không thể cấp quyền quản lý' })
     }
 
     const fields = []

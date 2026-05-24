@@ -1,4 +1,5 @@
 import { NAV_ITEMS } from '@/constants/navigation'
+import { filterNavByRole, ROLE_LABELS } from '@/lib/permissions'
 import {
   LayoutDashboard, Table2, ClipboardList, ChefHat,
   CreditCard, QrCode, Users, Heart, Settings,
@@ -19,6 +20,8 @@ const ICON_MAP = {
 }
 
 export default function Sidebar({ active, setActive, collapsed, setCollapsed, user, onLogout }) {
+  const navItems = filterNavByRole(NAV_ITEMS, user?.role)
+
   return (
     <aside
       className={`${collapsed ? 'w-[72px]' : 'w-64'} bg-white border-r border-slate-100 flex flex-col h-screen transition-all duration-300 flex-shrink-0 relative`}
@@ -67,7 +70,7 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, us
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Menu</p>
         )}
         <div className="space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = active === item.id
             const IconComp = ICON_MAP[item.id]
             return (
@@ -103,7 +106,7 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, us
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-slate-700 truncate">{user?.name || 'Người dùng'}</p>
-                <p className="text-[10px] text-slate-400">{user?.role || 'Chủ quán'}</p>
+                <p className="text-[10px] text-slate-400">{ROLE_LABELS[user?.role] || user?.role || 'Chủ quán'}</p>
               </div>
             </div>
             <button

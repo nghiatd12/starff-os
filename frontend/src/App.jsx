@@ -6,6 +6,7 @@ import { clearAuth, getRefreshToken, getToken, getUser, setUser as saveUser } fr
 import { prefetchAll, clearStore, bindSocketToStore } from '@/lib/store'
 import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { isAudioUnlocked, playNewOrder, playOrderReady, playStaffCall, unlockAudio } from '@/lib/sound'
+import { canAccessScreen, getDefaultScreen } from '@/lib/permissions'
 
 // Feature pages
 import DashboardPage  from '@/features/dashboard/DashboardPage'
@@ -91,6 +92,7 @@ export default function App() {
 
   const setActiveScreen = (screen) => {
     if (!SCREENS[screen]) return
+    if (user?.role && !canAccessScreen(user.role, screen)) return
     setActiveScreenState(screen)
     const nextPath = buildAppPath(storeSlug || user?.storeSlug || user?.store_slug, screen)
     if (window.location.pathname !== nextPath || window.location.hash) {
@@ -167,10 +169,12 @@ export default function App() {
 
     const startApp = (userData) => {
       setUser(userData)
+      const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
       const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
+      setActiveScreenState(nextScreen)
       setStoreSlug(nextSlug || '')
-      if (nextSlug && !window.location.pathname.startsWith(`/${nextSlug}/`)) {
-        window.history.replaceState(null, '', buildAppPath(nextSlug, activeScreen))
+      if (nextSlug && (window.location.pathname !== buildAppPath(nextSlug, nextScreen) || window.location.hash)) {
+        window.history.replaceState(null, '', buildAppPath(nextSlug, nextScreen))
       }
       setCurrentView('app')
       const socket = connectSocket(userData.role)
@@ -201,8 +205,12 @@ export default function App() {
         saveUser(userData)
         setUser(userData)
         setStoreSlug(userSlug || '')
-        if (!route.storeSlug && userSlug && !window.location.pathname.startsWith(`/${userSlug}/`)) {
-          window.history.replaceState(null, '', buildAppPath(userSlug, activeScreen))
+        const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
+        if (nextScreen !== activeScreen) {
+          setActiveScreenState(nextScreen)
+        }
+        if (!route.storeSlug && userSlug && window.location.pathname !== buildAppPath(userSlug, nextScreen)) {
+          window.history.replaceState(null, '', buildAppPath(userSlug, nextScreen))
         }
         if (!canUseCachedUser) {
           startApp(userData)
@@ -220,9 +228,15 @@ export default function App() {
   useEffect(() => {
     const handleLocationChange = () => {
       const nextRoute = parseAppPath()
+      const nextScreen = user?.role && !canAccessScreen(user.role, nextRoute.screen)
+        ? getDefaultScreen(user.role)
+        : nextRoute.screen
       setRoute(nextRoute)
       setStoreSlug(nextRoute.storeSlug)
-      setActiveScreenState(nextRoute.screen)
+      setActiveScreenState(nextScreen)
+      if (nextScreen !== nextRoute.screen) {
+        window.history.replaceState(null, '', buildAppPath(nextRoute.storeSlug || user?.storeSlug || user?.store_slug, nextScreen))
+      }
     }
     window.addEventListener('popstate', handleLocationChange)
     window.addEventListener('hashchange', handleLocationChange)
@@ -230,14 +244,16 @@ export default function App() {
       window.removeEventListener('popstate', handleLocationChange)
       window.removeEventListener('hashchange', handleLocationChange)
     }
-  }, [])
+  }, [user])
 
   const handleLogin = async (userData) => {
     setUser(userData)
+    const nextScreen = canAccessScreen(userData.role, activeScreen) ? activeScreen : getDefaultScreen(userData.role)
     const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
+    setActiveScreenState(nextScreen)
     setStoreSlug(nextSlug || '')
     if (nextSlug) {
-      window.history.replaceState(null, '', buildAppPath(nextSlug, activeScreen))
+      window.history.replaceState(null, '', buildAppPath(nextSlug, nextScreen))
     }
     setCurrentView('app')
     prefetchAll()
@@ -294,7 +310,7 @@ export default function App() {
       <main className="flex-1 overflow-hidden flex flex-col">
         <TopBar activeScreen={activeScreen} user={user} />
         <div className="flex-1 overflow-hidden">
-          <Screen setActive={setActiveScreen} />
+          <Screen setActive={setActiveScreen} user={user} />
         </div>
       </main>
       {!audioReady && (

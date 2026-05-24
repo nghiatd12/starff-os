@@ -4,6 +4,8 @@ import {
 } from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import { getPaymentSettings, savePaymentSettings } from '@/lib/settings'
+import { NAV_ITEMS } from '@/constants/navigation'
+import { ROLE_LABELS, SCREEN_PERMISSIONS } from '@/lib/permissions'
 
 const TABS = [
   { id: 'general',  label: 'Thông tin chung', Icon: Settings },
@@ -19,6 +21,8 @@ const INITIAL_ZONES = [
   { id: 'outdoor', name: 'Ngoài trời',  tables: 4, description: 'Sân vườn, ban công' },
   { id: 'vip',     name: 'Phòng VIP',   tables: 3, description: 'Phòng riêng, karaoke' },
 ]
+
+const ROLE_ORDER = ['owner', 'manager', 'waiter', 'kitchen', 'cashier']
 
 const resizeQrImage = (file) =>
   new Promise((resolve, reject) => {
@@ -456,7 +460,56 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab !== 'zones' && activeTab !== 'general' && activeTab !== 'payment-qr' && (
+          {activeTab === 'roles' && (
+            <Card className="overflow-hidden">
+              <div className="border-b border-slate-100 px-6 py-5">
+                <h2 className="text-lg font-bold text-slate-800">Phân quyền theo vai trò</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Chủ quán có toàn quyền. Các vai trò nhân viên chỉ thấy và dùng các màn được cấp bên dưới.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] uppercase tracking-wider text-slate-400">
+                      <th className="p-4 text-left font-semibold">Màn hình</th>
+                      {ROLE_ORDER.map((role) => (
+                        <th key={role} className="p-4 text-center font-semibold">
+                          {ROLE_LABELS[role]}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {NAV_ITEMS.map((item) => (
+                      <tr key={item.id} className="border-b border-slate-50">
+                        <td className="p-4">
+                          <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                        </td>
+                        {ROLE_ORDER.map((role) => {
+                          const allowed = SCREEN_PERMISSIONS[item.id]?.includes(role)
+                          return (
+                            <td key={role} className="p-4 text-center">
+                              <span className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                                allowed
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-50 text-slate-300'
+                              }`}>
+                                {allowed ? 'Có' : '-'}
+                              </span>
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {activeTab !== 'zones' && activeTab !== 'general' && activeTab !== 'payment-qr' && activeTab !== 'roles' && (
             <Card className="p-8 text-center">
               <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
                 <Settings size={28} className="text-slate-300" />
