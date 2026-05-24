@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { query, queryOne, queryAll } from '../db/pool.js'
+import pool, { query, queryOne, queryAll } from '../db/pool.js'
 import { authenticate, authorizeScreens } from '../middleware/auth.js'
 import { emitToRoles } from '../socketRooms.js'
 
@@ -141,6 +141,118 @@ router.get('/billing', authorizeScreens('cashier'), async (req, res) => {
   }
 })
 
+router.get('/history', authorizeScreens('cashier'), async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200)
+    const orders = await queryAll(
+      `SELECT o.*, t.name as table_name
+       FROM orders o
+       LEFT JOIN tables t ON o.table_id = t.id
+       WHERE o.tenant_id = $1 AND o.status = 'paid'
+       ORDER BY o.closed_at DESC NULLS LAST, o.created_at DESC
+       LIMIT $2`,
+      [req.user.tenantId, limit]
+    )
+
+    for (const order of orders) {
+      order.items = await queryAll(
+        `SELECT * FROM order_items WHERE order_id = $1 ORDER BY id`,
+        [order.id]
+      )
+    }
+
+    res.json({ orders })
+  } catch (err) {
+    console.error('[Orders] History error:', err)
+    res.status(500).json({ error: 'Lỗi server' })
+  }
+})
+
+router.patch('/:id/bill', authorizeScreens('cashier'), async (req, res) => {
+  try {
+    const { items, paymentMethod, discount } = req.body
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Hóa đơn phải có ít nhất 1 món' })
+    }
+
+    const order = await queryOne(
+      `SELECT id FROM orders WHERE id = $1 AND tenant_id = $2 AND status = 'paid'`,
+      [req.params.id, req.user.tenantId]
+    )
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy hóa đơn đã thanh toán' })
+
+    const normalizedItems = items.map((item) => ({
+      id: item.id,
+      name: String(item.name || '').trim(),
+      price: Math.max(0, Math.round(Number(item.price) || 0)),
+      quantity: Math.max(1, Math.round(Number(item.quantity || item.qty) || 1)),
+    })).filter((item) => item.name)
+
+    if (normalizedItems.length === 0) {
+      return res.status(400).json({ error: 'Món trong hóa đơn không hợp lệ' })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const { rows: existingItems } = await client.query(
+        `SELECT id FROM order_items WHERE order_id = $1`,
+        [req.params.id]
+      )
+      const incomingIds = new Set(normalizedItems.filter((item) => item.id).map((item) => Number(item.id)))
+
+      for (const existing of existingItems) {
+        if (!incomingIds.has(existing.id)) {
+          await client.query(`DELETE FROM order_items WHERE id = $1 AND order_id = $2`, [existing.id, req.params.id])
+        }
+      }
+
+      for (const item of normalizedItems) {
+        if (item.id) {
+          await client.query(
+            `UPDATE order_items
+             SET name = $1, price = $2, quantity = $3
+             WHERE id = $4 AND order_id = $5`,
+            [item.name, item.price, item.quantity, item.id, req.params.id]
+          )
+        } else {
+          await client.query(
+            `INSERT INTO order_items (order_id, name, price, quantity, status)
+             VALUES ($1, $2, $3, $4, 'done')`,
+            [req.params.id, item.name, item.price, item.quantity]
+          )
+        }
+      }
+
+      const subtotal = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      const discountPercent = Math.min(100, Math.max(0, Number(discount) || 0))
+      const discountAmount = Math.round(subtotal * discountPercent / 100)
+      const total = Math.max(0, subtotal - discountAmount)
+
+      const { rows: [updated] } = await client.query(
+        `UPDATE orders
+         SET total = $1, payment_method = COALESCE($2, payment_method), discount_percent = $3
+         WHERE id = $4 AND tenant_id = $5
+         RETURNING *`,
+        [total, paymentMethod || null, discountPercent, req.params.id, req.user.tenantId]
+      )
+      const { rows: updatedItems } = await client.query(`SELECT * FROM order_items WHERE order_id = $1 ORDER BY id`, [req.params.id])
+      updated.items = updatedItems
+      await client.query('COMMIT')
+      res.json({ order: updated })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error('[Orders] Update bill error:', err)
+    res.status(500).json({ error: 'Lỗi server' })
+  }
+})
+
 /**
  * PATCH /api/orders/:id/items/:itemId
  * Cập nhật trạng thái món (pending → preparing → done)
@@ -213,11 +325,18 @@ router.patch('/:id/complete', authorizeScreens('kitchen'), async (req, res) => {
 router.patch('/:id/pay', authorizeScreens('cashier'), async (req, res) => {
   try {
     const { paymentMethod, discount } = req.body
+    const discountPercent = Math.min(100, Math.max(0, Number(discount) || 0))
 
     const { rows: [order] } = await query(
-      `UPDATE orders SET status = 'paid', closed_at = NOW()
+      `UPDATE orders
+       SET
+         status = 'paid',
+         closed_at = NOW(),
+         payment_method = $3,
+         discount_percent = $4,
+         total = GREATEST(0, ROUND(total * (1 - ($4::numeric / 100))))::int
        WHERE id = $1 AND tenant_id = $2 RETURNING *`,
-      [req.params.id, req.user.tenantId]
+      [req.params.id, req.user.tenantId, paymentMethod || 'cash', discountPercent]
     )
     if (!order) return res.status(404).json({ error: 'Không tìm thấy order' })
 

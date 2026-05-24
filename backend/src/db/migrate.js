@@ -238,6 +238,12 @@ async function migrate() {
   `)
 
   await pool.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS discount_percent NUMERIC DEFAULT 0;
+  `)
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS role_permissions (
       tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       role      VARCHAR(20) NOT NULL,

@@ -3,12 +3,14 @@ import { api } from '@/lib/api'
 import { CreditCard } from '@/components/ui/Icon'
 import TableList from './components/TableList'
 import BillDetail from './components/BillDetail'
+import CashierHistory from './components/CashierHistory'
 
 export default function CashierPage() {
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTable, setSelectedTable] = useState(null)
+  const [activeTab, setActiveTab] = useState('current')
 
   useEffect(() => {
     Promise.all([
@@ -36,7 +38,30 @@ export default function CashierPage() {
   }
 
   return (
-    <div className="flex h-full fade-in">
+    <div className="flex h-full flex-col fade-in">
+      <div className="flex items-center gap-2 border-b border-slate-100 bg-white px-5 py-3">
+        {[
+          { id: 'current', label: 'Đang thanh toán' },
+          { id: 'history', label: 'Lịch sử' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+              activeTab === tab.id
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'history' ? (
+        <CashierHistory />
+      ) : (
+      <div className="flex min-h-0 flex-1">
       <TableList
         tables={tables}
         orders={orders}
@@ -64,6 +89,8 @@ export default function CashierPage() {
             <p className="text-sm font-medium">Chọn bàn để xem hóa đơn</p>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   )
