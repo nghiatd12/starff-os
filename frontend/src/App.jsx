@@ -270,6 +270,11 @@ export default function App() {
     setCurrentView('login')
   }
 
+  const handleUserUpdate = (nextUser) => {
+    setUser(nextUser)
+    saveUser(nextUser)
+  }
+
   // Loading
   if (currentView === 'loading') {
     return (
@@ -310,7 +315,7 @@ export default function App() {
       <main className="flex-1 overflow-hidden flex flex-col">
         <TopBar activeScreen={activeScreen} user={user} />
         <div className="flex-1 overflow-hidden">
-          <Screen setActive={setActiveScreen} user={user} />
+          <Screen setActive={setActiveScreen} user={user} onUserUpdate={handleUserUpdate} />
         </div>
       </main>
       {!audioReady && (

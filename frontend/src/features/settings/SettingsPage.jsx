@@ -47,18 +47,36 @@ const resizeQrImage = (file) =>
     image.src = imageUrl
   })
 
-export default function SettingsPage() {
+export default function SettingsPage({ user, onUserUpdate }) {
   const [activeTab, setActiveTab] = useState('zones')
   const [zones, setZones] = useState(INITIAL_ZONES)
   const [editingZone, setEditingZone] = useState(null)
   const [newZone, setNewZone] = useState({ name: '', tables: '', description: '' })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [restaurantInfo, setRestaurantInfo] = useState({
+    name: user?.store || user?.store_name || '',
+    address: user?.storeAddress || user?.store_address || '',
+    phone: user?.storePhone || user?.store_phone || '',
+  })
+  const [restaurantSaving, setRestaurantSaving] = useState(false)
+  const [restaurantSaved, setRestaurantSaved] = useState(false)
+  const [restaurantError, setRestaurantError] = useState('')
   const [paymentSettings, setPaymentSettings] = useState(getPaymentSettings)
   const [paymentSaved, setPaymentSaved] = useState(false)
   const [permissions, setPermissions] = useState(null)
   const [permissionsLoading, setPermissionsLoading] = useState(false)
   const [permissionSaving, setPermissionSaving] = useState('')
   const [permissionError, setPermissionError] = useState('')
+
+  useEffect(() => {
+    setRestaurantInfo({
+      name: user?.store || user?.store_name || '',
+      address: user?.storeAddress || user?.store_address || '',
+      phone: user?.storePhone || user?.store_phone || '',
+    })
+    setRestaurantSaved(false)
+    setRestaurantError('')
+  }, [user])
 
   useEffect(() => {
     if (activeTab !== 'roles' || permissions) return
@@ -84,6 +102,44 @@ export default function SettingsPage() {
   const updatePaymentSettings = (nextFields) => {
     setPaymentSaved(false)
     setPaymentSettings((current) => ({ ...current, ...nextFields }))
+  }
+
+  const updateRestaurantInfo = (field, value) => {
+    setRestaurantSaved(false)
+    setRestaurantError('')
+    setRestaurantInfo((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleSaveRestaurantInfo = async () => {
+    if (!restaurantInfo.name.trim()) {
+      setRestaurantError('Nhập tên nhà hàng.')
+      return
+    }
+
+    setRestaurantSaving(true)
+    setRestaurantError('')
+    try {
+      const data = await api.patch('/tenant', restaurantInfo)
+      const tenant = data.tenant
+      const nextUser = {
+        ...user,
+        store: tenant.name,
+        store_name: tenant.name,
+        storeSlug: tenant.slug,
+        store_slug: tenant.slug,
+        storeAddress: tenant.address,
+        store_address: tenant.address,
+        storePhone: tenant.phone,
+        store_phone: tenant.phone,
+      }
+      setRestaurantInfo({ name: tenant.name, address: tenant.address || '', phone: tenant.phone || '' })
+      onUserUpdate?.(nextUser)
+      setRestaurantSaved(true)
+    } catch (err) {
+      setRestaurantError(err.message || 'Không lưu được thông tin nhà hàng.')
+    } finally {
+      setRestaurantSaving(false)
+    }
   }
 
   const handlePaymentQrUpload = async (event) => {
@@ -282,20 +338,50 @@ export default function SettingsPage() {
 
           {activeTab === 'general' && (
             <Card className="p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Thông tin nhà hàng</h2>
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Thông tin nhà hàng</h2>
+                  <p className="text-sm text-slate-400 mt-0.5">Thông tin này dùng trên hệ thống, hóa đơn và trang đăng nhập.</p>
+                </div>
+                <button
+                  onClick={handleSaveRestaurantInfo}
+                  disabled={restaurantSaving}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+                >
+                  <Save size={16} />
+                  {restaurantSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-medium text-slate-500 mb-1 block">Tên nhà hàng</label>
-                  <input type="text" defaultValue="District 1 - Beer Club" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300" />
+                  <input
+                    type="text"
+                    value={restaurantInfo.name}
+                    onChange={(e) => updateRestaurantInfo('name', e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500 mb-1 block">Địa chỉ</label>
-                  <input type="text" defaultValue="123 Nguyễn Huệ, Quận 1, TP.HCM" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300" />
+                  <input
+                    type="text"
+                    value={restaurantInfo.address}
+                    onChange={(e) => updateRestaurantInfo('address', e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500 mb-1 block">Số điện thoại</label>
-                  <input type="text" defaultValue="0901 234 567" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300" />
+                  <input
+                    type="text"
+                    value={restaurantInfo.phone}
+                    onChange={(e) => updateRestaurantInfo('phone', e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+                  />
                 </div>
+                {restaurantError && <p className="text-sm font-medium text-red-500">{restaurantError}</p>}
+                {restaurantSaved && <p className="text-sm font-semibold text-emerald-600">Đã lưu thông tin nhà hàng.</p>}
               </div>
             </Card>
           )}

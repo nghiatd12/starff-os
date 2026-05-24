@@ -66,6 +66,10 @@ async function publicUser(user) {
     storeSlug: user.store_slug,
     store_name: user.store_name,
     store_slug: user.store_slug,
+    storeAddress: user.store_address || '',
+    storePhone: user.store_phone || '',
+    store_address: user.store_address || '',
+    store_phone: user.store_phone || '',
     permissions,
   }
 }
@@ -149,7 +153,7 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await queryOne(
-      `SELECT u.*, t.name as store_name, t.slug as store_slug, t.status as tenant_status
+      `SELECT u.*, t.name as store_name, t.slug as store_slug, t.address as store_address, t.phone as store_phone, t.status as tenant_status
        FROM users u JOIN tenants t ON u.tenant_id = t.id
        WHERE u.phone = $1 AND u.is_active = true AND t.deleted_at IS NULL${tenantFilter}`,
       params
@@ -197,7 +201,7 @@ router.post('/refresh', async (req, res) => {
     }
 
     const user = await queryOne(
-      `SELECT u.*, t.name as store_name, t.slug as store_slug, t.status as tenant_status, t.deleted_at
+      `SELECT u.*, t.name as store_name, t.slug as store_slug, t.address as store_address, t.phone as store_phone, t.status as tenant_status, t.deleted_at
        FROM users u JOIN tenants t ON u.tenant_id = t.id
        WHERE u.id = $1 AND u.tenant_id = $2 AND u.is_active = true`,
       [payload.id, payload.tenantId]
@@ -231,7 +235,7 @@ router.post('/refresh', async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await queryOne(
-      `SELECT u.id, u.name, u.phone, u.role, t.name as store_name, t.slug as store_slug
+      `SELECT u.id, u.name, u.phone, u.role, u.tenant_id, t.name as store_name, t.slug as store_slug, t.address as store_address, t.phone as store_phone
        FROM users u JOIN tenants t ON u.tenant_id = t.id
        WHERE u.id = $1`,
       [req.user.id]
