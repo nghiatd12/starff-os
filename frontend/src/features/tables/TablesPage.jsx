@@ -127,52 +127,51 @@ export default function TablesPage({ setActive }) {
 
   return (
     <div className="p-6 lg:p-8 fade-in h-full overflow-hidden flex flex-col">
-      <div className="mb-5 flex items-end justify-between flex-shrink-0">
-        <div>
-          <p className="text-slate-400 text-sm">
-            Quản lý {displayTables.length} bàn · {zones.length - 1} khu vực
-          </p>
-        </div>
-        <button
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium text-white transition-all"
-          style={{ backgroundColor: '#10b981' }}
-        >
-          <Plus size={16} />
-          Thêm bàn
-        </button>
-      </div>
+      <div className="mb-5 flex-shrink-0 space-y-4">
+        <p className="text-slate-400 text-sm">
+          Quản lý {displayTables.length} bàn · {zones.length - 1} khu vực
+        </p>
 
-      <div className="flex items-center justify-between mb-5 flex-shrink-0">
-        <div className="flex gap-2">
-          {zones.map((zone) => (
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {zones.map((zone) => (
+              <button
+                key={zone.id}
+                onClick={() => setActiveZone(zone.id)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  activeZone === zone.id
+                    ? 'text-white shadow-sm'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700'
+                }`}
+                style={activeZone === zone.id ? { backgroundColor: '#10b981' } : {}}
+              >
+                {zone.name}
+                {zone.id !== 'all' && zoneCounts[zone.id] && (
+                  <span className={`ml-1.5 text-xs ${activeZone === zone.id ? 'text-white/70' : 'text-slate-400'}`}>
+                    ({zoneCounts[zone.id]})
+                  </span>
+                )}
+              </button>
+            ))}
+
             <button
-              key={zone.id}
-              onClick={() => setActiveZone(zone.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                activeZone === zone.id
-                  ? 'text-white shadow-sm'
-                  : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700'
-              }`}
-              style={activeZone === zone.id ? { backgroundColor: '#10b981' } : {}}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90"
+              style={{ backgroundColor: '#10b981' }}
             >
-              {zone.name}
-              {zone.id !== 'all' && zoneCounts[zone.id] && (
-                <span className={`ml-1.5 text-xs ${activeZone === zone.id ? 'text-white/70' : 'text-slate-400'}`}>
-                  ({zoneCounts[zone.id]})
-                </span>
-              )}
+              <Plus size={16} />
+              Thêm bàn
             </button>
-          ))}
-        </div>
+          </div>
 
-        <div className="hidden lg:flex gap-3">
-          {Object.entries(TABLE_STATUS_CONFIG).map(([key, cfg]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-              <span className="text-xs text-slate-500">{cfg.label}</span>
-              <span className="text-xs font-bold text-slate-700">{counts[key] || 0}</span>
-            </div>
-          ))}
+          <div className="hidden lg:flex flex-wrap items-center gap-3 xl:justify-end">
+            {Object.entries(TABLE_STATUS_CONFIG).map(([key, cfg]) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+                <span className="text-xs text-slate-500">{cfg.label}</span>
+                <span className="text-xs font-bold text-slate-700">{counts[key] || 0}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
