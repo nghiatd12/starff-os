@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Card from '@/components/ui/Card'
 import { Store, ChevronRight } from '@/components/ui/Icon'
 import { api } from '@/lib/api'
@@ -12,10 +12,31 @@ const ROLES = [
   { id: 'kitchen',  label: 'Bếp' },
 ]
 
-export default function LoginPage({ onLogin, onNavigate }) {
+export default function LoginPage({ storeSlug, onLogin, onNavigate }) {
   const [form, setForm] = useState({ phone: '', password: '', role: 'owner' })
+  const [tenant, setTenant] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!storeSlug) {
+      setTenant(null)
+      return
+    }
+
+    let active = true
+    api.get(`/public/${storeSlug}`)
+      .then((data) => {
+        if (active) setTenant(data.tenant || null)
+      })
+      .catch(() => {
+        if (active) setTenant(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [storeSlug])
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -42,6 +63,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       const data = await api.post('/auth/login', {
         phone: form.phone,
         password: form.password,
+        storeSlug,
       })
       setToken(data.token)
       if (data.refreshToken) setRefreshToken(data.refreshToken)
@@ -65,8 +87,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
           >
             <Store size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">StaffOS</h1>
-          <p className="text-sm text-slate-400 mt-1">Đăng nhập để quản lý quán</p>
+          <h1 className="text-2xl font-bold text-slate-800">{tenant?.name || 'StaffOS'}</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {tenant?.name ? 'Đăng nhập vào hệ thống của quán' : 'Đăng nhập để quản lý quán'}
+          </p>
+          {storeSlug && (
+            <p className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              /{storeSlug}
+            </p>
+          )}
         </div>
 
         {/* Login Card */}

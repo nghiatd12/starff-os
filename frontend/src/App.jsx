@@ -36,15 +36,55 @@ const SCREENS = {
   settings:   SettingsPage,
 }
 
-function getScreenFromHash() {
-  const screen = window.location.hash.replace(/^#\/?/, '')
-  return SCREENS[screen] ? screen : 'dashboard'
+const RESERVED_PATHS = new Set(['menu', 'login', 'register'])
+
+function parseAppPath() {
+  const parts = window.location.pathname.split('/').filter(Boolean)
+  const first = parts[0] || ''
+  const second = parts[1] || ''
+  const hashScreen = window.location.hash.replace(/^#\/?/, '')
+
+  if (SCREENS[hashScreen]) {
+    return {
+      storeSlug: RESERVED_PATHS.has(first) ? '' : first,
+      screen: hashScreen,
+      shouldReplaceHash: true,
+    }
+  }
+
+  if (SCREENS[first]) {
+    return {
+      storeSlug: '',
+      screen: first,
+      shouldReplaceHash: false,
+    }
+  }
+
+  if (first && !RESERVED_PATHS.has(first)) {
+    return {
+      storeSlug: first,
+      screen: SCREENS[second] ? second : 'dashboard',
+      shouldReplaceHash: false,
+    }
+  }
+
+  return {
+    storeSlug: '',
+    screen: SCREENS[first] ? first : 'dashboard',
+    shouldReplaceHash: false,
+  }
+}
+
+function buildAppPath(storeSlug, screen) {
+  return storeSlug ? `/${storeSlug}/${screen}` : `/${screen}`
 }
 
 export default function App() {
   const [currentView, setCurrentView] = useState('loading')
   const [user, setUser] = useState(null)
-  const [activeScreen, setActiveScreenState] = useState(getScreenFromHash)
+  const [route, setRoute] = useState(parseAppPath)
+  const [activeScreen, setActiveScreenState] = useState(() => parseAppPath().screen)
+  const [storeSlug, setStoreSlug] = useState(() => parseAppPath().storeSlug)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [audioReady, setAudioReady] = useState(false)
@@ -52,8 +92,9 @@ export default function App() {
   const setActiveScreen = (screen) => {
     if (!SCREENS[screen]) return
     setActiveScreenState(screen)
-    if (window.location.hash !== `#${screen}`) {
-      window.history.replaceState(null, '', `#${screen}`)
+    const nextPath = buildAppPath(storeSlug || user?.storeSlug || user?.store_slug, screen)
+    if (window.location.pathname !== nextPath || window.location.hash) {
+      window.history.pushState(null, '', nextPath)
     }
   }
 
@@ -105,6 +146,15 @@ export default function App() {
     })
   }
 
+  useEffect(() => {
+    if (route.shouldReplaceHash) {
+      const nextPath = buildAppPath(route.storeSlug, route.screen)
+      window.history.replaceState(null, '', nextPath)
+      setStoreSlug(route.storeSlug)
+      setActiveScreenState(route.screen)
+    }
+  }, [route])
+
   // Check token on mount. Use cached user first so backend cold starts do not block the shell UI.
   useEffect(() => {
     const token = getToken()
@@ -117,13 +167,21 @@ export default function App() {
 
     const startApp = (userData) => {
       setUser(userData)
+      const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
+      setStoreSlug(nextSlug || '')
+      if (nextSlug && !window.location.pathname.startsWith(`/${nextSlug}/`)) {
+        window.history.replaceState(null, '', buildAppPath(nextSlug, activeScreen))
+      }
       setCurrentView('app')
       const socket = connectSocket(userData.role)
       bindSocketToStore(socket)
       bindGlobalNotifications(socket)
     }
 
-    if (cachedUser) {
+    const cachedUserSlug = cachedUser?.storeSlug || cachedUser?.store_slug
+    const canUseCachedUser = cachedUser && (!route.storeSlug || cachedUserSlug === route.storeSlug)
+
+    if (canUseCachedUser) {
       startApp(cachedUser)
       prefetchAll().catch(() => {})
     }
@@ -131,9 +189,18 @@ export default function App() {
     api.get('/auth/me')
       .then((data) => {
         const userData = data.user
+        const userSlug = userData.storeSlug || userData.store_slug
+        if (route.storeSlug && userSlug !== route.storeSlug) {
+          clearAuth()
+          clearStore()
+          disconnectSocket()
+          setCurrentView('login')
+          return
+        }
+
         saveUser(userData)
         setUser(userData)
-        if (!cachedUser) {
+        if (!canUseCachedUser) {
           startApp(userData)
           prefetchAll().catch(() => {})
         }
@@ -147,15 +214,27 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const handleHashChange = () => {
-      setActiveScreenState(getScreenFromHash())
+    const handleLocationChange = () => {
+      const nextRoute = parseAppPath()
+      setRoute(nextRoute)
+      setStoreSlug(nextRoute.storeSlug)
+      setActiveScreenState(nextRoute.screen)
     }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    window.addEventListener('popstate', handleLocationChange)
+    window.addEventListener('hashchange', handleLocationChange)
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+      window.removeEventListener('hashchange', handleLocationChange)
+    }
   }, [])
 
   const handleLogin = async (userData) => {
     setUser(userData)
+    const nextSlug = route.storeSlug || userData.storeSlug || userData.store_slug
+    setStoreSlug(nextSlug || '')
+    if (nextSlug) {
+      window.history.replaceState(null, '', buildAppPath(nextSlug, activeScreen))
+    }
     setCurrentView('app')
     prefetchAll()
     const socket = connectSocket(userData.role)
@@ -185,7 +264,7 @@ export default function App() {
 
   // Auth pages
   if (currentView === 'login') {
-    return <LoginPage onLogin={handleLogin} onNavigate={(v) => setCurrentView(v)} />
+    return <LoginPage storeSlug={storeSlug || route.storeSlug} onLogin={handleLogin} onNavigate={(v) => setCurrentView(v)} />
   }
   if (currentView === 'register') {
     return <RegisterPage onNavigate={(v) => setCurrentView(v)} />

@@ -5,6 +5,34 @@ import { emitToRoles } from '../socketRooms.js'
 const router = Router()
 
 /**
+ * GET /api/public/:slug
+ * Lấy thông tin quán theo slug để màn đăng nhập biết đang vào quán nào.
+ */
+router.get('/:slug', async (req, res) => {
+  try {
+    const tenant = await queryOne(
+      `SELECT id, name, slug, address
+       FROM tenants
+       WHERE slug = $1 AND status = 'active' AND deleted_at IS NULL`,
+      [req.params.slug]
+    )
+    if (!tenant) return res.status(404).json({ error: 'Không tìm thấy quán' })
+
+    res.json({
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        address: tenant.address,
+      },
+    })
+  } catch (err) {
+    console.error('[Public] Get tenant error:', err)
+    res.status(500).json({ error: 'Lỗi server' })
+  }
+})
+
+/**
  * GET /api/public/:slug/table/:tableId
  * Lấy thông tin bàn + menu — không cần auth
  * Dùng cho trang QR menu của khách

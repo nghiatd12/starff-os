@@ -131,18 +131,25 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { phone, password } = req.body
+    const { phone, password, storeSlug } = req.body
 
     if (!phone || !password) {
       return res.status(400).json({ error: 'Thiếu số điện thoại hoặc mật khẩu' })
     }
 
     // Tìm user
+    const params = [phone]
+    let tenantFilter = ''
+    if (storeSlug) {
+      params.push(storeSlug)
+      tenantFilter = ` AND t.slug = $${params.length}`
+    }
+
     const user = await queryOne(
       `SELECT u.*, t.name as store_name, t.slug as store_slug, t.status as tenant_status
        FROM users u JOIN tenants t ON u.tenant_id = t.id
-       WHERE u.phone = $1 AND u.is_active = true AND t.deleted_at IS NULL`,
-      [phone]
+       WHERE u.phone = $1 AND u.is_active = true AND t.deleted_at IS NULL${tenantFilter}`,
+      params
     )
 
     if (!user) {
